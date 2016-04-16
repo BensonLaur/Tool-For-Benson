@@ -1,0 +1,39 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: ToolForBenson - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\Users\ADMINI~1\AppData\Local\Temp\RSPA191.tmp" with contents
+[
+/nologo /MLd /W2 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /FR"Debug/" /Fp"Debug/ToolForBenson.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
+"G:\桌面\专业软件\VC projects\ToolForBenson\Entry.cpp"
+"G:\桌面\专业软件\VC projects\ToolForBenson\MyDefine.cpp"
+]
+Creating command line "cl.exe @C:\Users\ADMINI~1\AppData\Local\Temp\RSPA191.tmp" 
+Creating temporary file "C:\Users\ADMINI~1\AppData\Local\Temp\RSPA192.tmp" with contents
+[
+kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /incremental:yes /pdb:"Debug/ToolForBenson.pdb" /debug /machine:I386 /out:"Debug/ToolForBenson.exe" /pdbtype:sept 
+".\Debug\Entry.obj"
+".\Debug\MyDefine.obj"
+]
+Creating command line "link.exe @C:\Users\ADMINI~1\AppData\Local\Temp\RSPA192.tmp"
+<h3>Output Window</h3>
+Compiling...
+Entry.cpp
+G:\桌面\专业软件\VC projects\ToolForBenson\Entry.cpp(1115) : warning C4101: 'rect' : unreferenced local variable
+MyDefine.cpp
+G:\桌面\专业软件\VC projects\ToolForBenson\MyDefine.cpp(258) : warning C4060: switch statement contains no 'case' or 'default' labels
+G:\桌面\专业软件\VC projects\ToolForBenson\MyDefine.cpp(254) : warning C4101: 'rect' : unreferenced local variable
+Linking...
+LINK : warning LNK4076: invalid incremental status file "Debug/ToolForBenson.ilk"; linking nonincrementally
+
+
+
+<h3>Results</h3>
+ToolForBenson.exe - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>
