@@ -244,6 +244,40 @@ PMODULEMANAGER GetPModuleManagerByStaticHWND(HWND hwnd){
 	return NULL;
 }
 
+/** 签到模块使用的函数 ***/
+bool IsLeapYear(int year)
+{
+	return ((year%4==0 && year%100!=0) || year%400==0);
+}
+//前一个签到必须保证时间前于后一个签到
+int DaysBetween(SignIn &former,SignIn &latter)
+{
+	int baseYear = former.year;
+	int DaysFromBase1,DaysFromBase2;
+	int i,j;
+
+	//计算前者的相对天数
+	DaysFromBase1 =0;
+	for(j=1; j<former.month ;j++) //计算 j=1...(former.month-1) 天数和
+	{
+		DaysFromBase1 += DAY_IN_MONTH[IsLeapYear(baseYear)][j-1];
+	}
+	DaysFromBase1 +=  former.day;
+
+	//计算后者的相对天数
+	DaysFromBase2 =0;
+	for(i = baseYear ; i<latter.year ;i++)
+	{
+		DaysFromBase2 += IsLeapYear(i)? 366:365;
+	}
+	for(j=1; j<latter.month ;j++) //计算 j=1...(latter.month-1) 天数和
+	{
+		DaysFromBase2 += DAY_IN_MONTH[IsLeapYear(i)][j-1];
+	}
+	DaysFromBase2 +=  latter.day;
+
+	return DaysFromBase2-DaysFromBase1;
+}
 
 
 //模块管理器 的 底层静态“静态窗口” 使用的消息处理函数 (主模块管理器)

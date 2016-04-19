@@ -71,6 +71,22 @@ WNDPROC ContentWindowProc;
 
 }ModuleProc,*PModuleProc;
 
+/*********   在此定义各个模块使用的文件数据结构体  ********/
+//第一个模块
+//文件单元结构
+typedef struct _SignIn{
+TCHAR name[256];
+int year;
+int month;
+int day;
+} SignIn,*pSignIn;
+//记录缓冲结构
+typedef struct _AllSignIn{
+int countOfItem;
+SignIn ** SignList;  //二维的签到记录，第一维的个数为countOfItem ，第二维的个数分别存放于countList
+int * countInList;
+} AllSignIn;
+
 
 /*********  内定变量声明  *********/
 //定义程序全局静态变量
@@ -87,6 +103,12 @@ static TCHAR szBuffer[256];
 static TCHAR szBuffer2[256];
 
 static WNDPROC oldEditProc;
+
+//定义用于计算签到间隔的 数组
+static int DAY_IN_MONTH[2][12] = {
+	{31,28,31,30,31,30,31,31,30,31,30,31},
+	{31,29,31,30,31,30,31,31,30,31,30,31}
+};
 
 /*********  函数定义  *********/
 
@@ -133,7 +155,8 @@ PMODULEMANAGER GetPModuleManagerByButtonHWND(HWND hwnd);
 //由static board 的句柄获得 其相对应的 模块管理器的指针
 PMODULEMANAGER GetPModuleManagerByStaticHWND(HWND hwnd);
 
-
+/** 签到模块使用的函数 ***/
+int DaysBetween(SignIn &former,SignIn &latter);
 
 
 /**

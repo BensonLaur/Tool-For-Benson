@@ -62,22 +62,9 @@ static HWND hDlgAddNetLink, hDlgAddLocalLink,
 
 //第三个模块 
 
-/*********   在此定义各个模块使用的文件数据结构体  ********/
-//第一个模块
-//文件单元结构
-typedef struct _SignIn{
-TCHAR name[256];
-int year;
-int month;
-int day;
-} SignIn,*pSignIn;
-//记录缓冲结构
-typedef struct _AllSignIn{
-int countOfItem;
-SignIn ** SignList;  //二维的签到记录，第一维的个数为countOfItem ，第二维的个数分别存放于countList
-int * countInList;
-} AllSignIn;
 
+
+//签到模块数据
 static AllSignIn allSignIn;
 static FILE *pSignInFile;
 static pSignIn pSignInListTemp;  //程序启动后文件读取后关闭，签到数据的更改缓冲于此，软件关闭时才更新写入
@@ -85,6 +72,14 @@ static int countOfSignIn;
 static SignIn SignInTemp;
 static TCHAR filePath[256];
 static int dlgAnswer;
+
+static int currentSignInSel;
+static struct tm *pTime;
+static time_t secondTime;
+
+/*********************************************************************
+*		以下为主函数、各个窗口的消息处理函数、和辅助函数
+*********************************************************************/
 
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM) ;
 LRESULT CALLBACK SubWndProc(HWND, UINT, WPARAM, LPARAM);
@@ -146,7 +141,11 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance,
      }
      return msg.wParam ;
 }
-//主窗口用的消息处理函数
+
+/*****************************************************************
+*	              主窗口用的消息处理函数
+******************************************************************/
+
 LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
      HDC         hdc ;
@@ -252,19 +251,29 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
      return DefWindowProc (hwnd, message, wParam, lParam) ;
 }
 
-//两个子窗口 hDlgBaseData 和 hDlgHistogram 的消息处理函数
+/*****************************************************************
+*	两个子窗口 hDlgBaseData 和 hDlgHistogram 的消息处理函数
+******************************************************************/
+
 LRESULT CALLBACK SubWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HDC         hdc ;
     PAINTSTRUCT ps ;
-	static int xOrigin=60,yOrigin=170;
-	static int i;
-	static int sel_RangeListBox1, sel_RangeListBox2, sel_LongOrShotListBox;
+	RECT rect;
+	static int xOrigin=50,yOrigin=180,widthHistogram=280,heightHistogram=160,cxBlock,cyBlock,maxCount,
+				monthCountArray[12],yearToShow,defaultYearToShow,cYearInRecord;
+	static int i,timeInputted=2,countOfSignIn,range,minIntervalDay=-1,maxIntervalDay=-1,flagForEdit;
+    static int sel_RangeListBox1=-1, sel_RangeListBox2=-1, sel_LongOrShotListBox=-1;
+
+	SignIn signInTemp1,signInTemp2;
+	
+	struct tm *pTime;
+	time_t secondTime;
 
 	switch(message)
 	{
-	case WM_USER+1:
-		 if(hwnd==hDlgBaseData)
+	case WM_USER+1://自定义消息，可用于创建时窗口时调用
+		 if(hwnd==hDlgBaseData)  
 		 {
 			//初始化其所有List
 			wsprintf(szBuffer,"%s",TEXT("一周内"));
@@ -292,24 +301,109 @@ LRESULT CALLBACK SubWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 
 			//设置当前各个ListBox所选为 LB_ERR，即没选中状态
 			sel_RangeListBox1 = sel_RangeListBox2 = sel_LongOrShotListBox = LB_ERR;
-/*
-
-static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
-       hRangeListBox2 , hLongOrShotListBox ,hTimesEdit, hStaticWord2,hStaticIntervalDays;
-
-  */
 		 }
+		 break;
+		 
+	case WM_USER+2://在每次进入的时候初始化窗口内容
+		
+		if(hwnd==hDlgBaseData)
+		{
+			//设置当前各个ListBox所选为 LB_ERR，即没选中状态
+			sel_RangeListBox1 = sel_RangeListBox2 = sel_LongOrShotListBox = LB_ERR;
 
+			//初始化选项
+			SendMessage (hRangeListBox1, LB_SETCURSEL, -1, 0) ;
+			SendMessage (hRangeListBox2, LB_SETCURSEL, -1, 0) ;
+			SendMessage (hLongOrShotListBox, LB_SETCURSEL, -1, 0) ;
+
+			//初始化各个标签
+			wsprintf(szBuffer,TEXT("显示指定范围内的签到数据范围1"));
+			SetWindowText(hStaticSignRange1,szBuffer);
+			wsprintf(szBuffer,TEXT("显示指定范围内的签到数据范围2"));
+			SetWindowText(hStaticSignRange2,szBuffer);
+
+			wsprintf(szBuffer,TEXT(""));
+			SetWindowText(hStaticTimes,szBuffer);
+			SetWindowText(hStaticDaysOnce,szBuffer);
+			SetWindowText(hStaticIntervalDays,szBuffer);
+			wsprintf(szBuffer,TEXT("2"));
+			SetWindowText(hTimesEdit,szBuffer);//hTimesEdit在很多时候会发送消息到WM_COMMAND到父窗口上
+		}
+		else if(hwnd==hDlgHistogram) 
+		 {
+			//获得当前系统的时间信息
+			secondTime = time(NULL);
+			pTime = localtime(&secondTime);
+			//用签到内容结构体暂存当前时间信息
+			SignInTemp.year = 1900 + pTime->tm_year;
+			SignInTemp.month = pTime->tm_mon+1;
+			SignInTemp.day = pTime->tm_mday;
+			
+			//设定默认显示年份，指定当前要显示的年份为默认
+			defaultYearToShow = SignInTemp.year;
+			yearToShow =defaultYearToShow;
+
+			//记录当前有签到记录的年数
+			cYearInRecord= defaultYearToShow - allSignIn.SignList[currentSignInSel][0].year+1;
+
+			//更新显示年份的static标签
+			wsprintf(szBuffer,TEXT("%d"),yearToShow);
+			SetWindowText(hStaticYearLabel,szBuffer);
+
+			//根据情况决定按钮的启用状态
+			EnableWindow(hNextYearButton,FALSE);
+			if(cYearInRecord==1)
+				EnableWindow(hLastYearButton,FALSE);
+			
+		 }
+		break;
 	case WM_PAINT:
+			hdc = BeginPaint (hwnd, &ps) ;
 		if(hwnd==hDlgHistogram)
 		{
-			hdc = BeginPaint (hwnd, &ps) ;
-		
+			//画坐标轴
 			MoveToEx (hdc, xOrigin, yOrigin, NULL) ;
-			LineTo (hdc, xOrigin, yOrigin-150) ;
+			LineTo (hdc, xOrigin, yOrigin-heightHistogram-10) ;
 			MoveToEx (hdc, xOrigin, yOrigin, NULL) ;
-			LineTo (hdc, xOrigin+280, yOrigin);
+			LineTo (hdc, xOrigin+widthHistogram+10, yOrigin);
 
+			//结合指定年份的签到记录得出绘制柱状图的信息
+			cxBlock = widthHistogram/(12+1);
+			maxCount = 0;
+			memset(monthCountArray,0,12*sizeof(int));
+			for(i=0;i<allSignIn.countInList[currentSignInSel];i++)
+			{
+				if(allSignIn.SignList[currentSignInSel][i].year==yearToShow)
+				{
+					monthCountArray[allSignIn.SignList[currentSignInSel][i].month-1]++;
+				}
+			}
+			for(i=0;i<12;i++)
+			{
+				maxCount = max(maxCount,monthCountArray[i]);
+			}
+			if(maxCount!=0){
+
+				cyBlock = heightHistogram/maxCount;
+
+				//绘制柱状图
+				for(i=0;i<12;i++)
+				{
+					SetRect(&rect,xOrigin+(i+1)*cxBlock-cxBlock/3,yOrigin-cyBlock*monthCountArray[i],
+								xOrigin+(i+1)*cxBlock+cxBlock/3,yOrigin);
+					//如果有数据就画
+					if(monthCountArray[i]!=0){
+						FillRect(hdc,&rect,(HBRUSH)GetStockObject(BLACK_BRUSH));
+						TextOut(hdc,rect.left+2,rect.top-20,szBuffer,wsprintf(szBuffer,TEXT("%d"),monthCountArray[i]));
+					}
+					
+					TextOut(hdc,rect.left+2,rect.bottom+5,szBuffer,wsprintf(szBuffer,TEXT("%d"),i+1));
+				}
+			}
+			else
+			{
+				TextOut(hdc,xOrigin+50,yOrigin-50,szBuffer,wsprintf(szBuffer,TEXT("该年没有签到数据！")));
+			}
 /*
 static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
        hRangeListBox2 , hLongOrShotListBox ,hTimesEdit, hStaticWord2,hStaticIntervalDays;
@@ -321,6 +415,15 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 		break;
 
 	case WM_COMMAND:
+				//获得当前系统的时间信息
+				secondTime = time(NULL);
+				pTime = localtime(&secondTime);
+				//用签到内容结构体暂存当前时间信息
+				SignInTemp.year = 1900 + pTime->tm_year;
+				SignInTemp.month = pTime->tm_mon+1;
+				SignInTemp.day = pTime->tm_mday;
+		if(hwnd==hDlgBaseData)
+		{
 			switch(LOWORD (wParam))
 			{
 			case 1://hRangeListBox1
@@ -328,12 +431,58 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 				{
 				case LBN_SELCHANGE:
 					sel_RangeListBox1 = SendMessage((HWND)lParam,LB_GETCURSEL,0,0);
-printf("1:%d\n",sel_RangeListBox1);
-					//直接计算出对应时间内 有多少次签到，和平均多少天一次，并直接更新显示数据
 
+					//直接计算出对应时间内 有多少次签到，和平均多少天一次，并直接更新显示数据
+					countOfSignIn=0;
+					range = -1;
+					if(sel_RangeListBox1==0) //一周
+					{
+						range=7;
+					}
+					else if(sel_RangeListBox1==1)//一月
+					{
+						range=30;
+					}
+					else if(sel_RangeListBox1==2)//一年
+					{
+						range=365;
+					}
+					//遍历当前所有所选项的的签到项
+						for(i=0;i<allSignIn.countInList[currentSignInSel] ;i++)
+						{
+							//如果签到项在时间范围内，进行记录
+							if(DaysBetween(allSignIn.SignList[currentSignInSel][i],SignInTemp)<=range)
+							{
+								countOfSignIn+=1;
+								if(countOfSignIn==1)//记录该范围内第一个签到项
+									signInTemp1=allSignIn.SignList[currentSignInSel][i];
+							}
+						}
+						if(countOfSignIn!=0)//如果有记录签到项记录最后一个
+							signInTemp2 = allSignIn.SignList[currentSignInSel][allSignIn.countInList[currentSignInSel]-1];
+
+					//直接更新显示数据
+					if(countOfSignIn==0){
+
+						SetWindowText(hStaticSignRange1,TEXT("该时间范围内没有录入的签到项"));
+						wsprintf(szBuffer,TEXT("%d"),0);
+						SetWindowText(hStaticTimes,szBuffer);
+						wsprintf(szBuffer,TEXT("%d"),-1);
+						SetWindowText(hStaticDaysOnce,szBuffer);
+					}
+					else{
+							wsprintf(szBuffer,TEXT("从已有记录的签到项 %d-%d-%d  ~ %d-%d-%d "),
+								signInTemp1.year , signInTemp1.month , signInTemp1.day,
+								signInTemp2.year , signInTemp2.month , signInTemp2.day);
+							SetWindowText(hStaticSignRange1,szBuffer);
+
+							wsprintf(szBuffer,TEXT("%d"),countOfSignIn);
+							SetWindowText(hStaticTimes,szBuffer);
+							wsprintf(szBuffer,TEXT("%d"),range/countOfSignIn);
+							SetWindowText(hStaticDaysOnce,szBuffer);
+					}
 					break;
 				}
-
 				return 0;
 			
 			case 5://hRangeListBox2
@@ -341,10 +490,8 @@ printf("1:%d\n",sel_RangeListBox1);
 				{
 				case LBN_SELCHANGE:
 					sel_RangeListBox2 = SendMessage((HWND)lParam,LB_GETCURSEL,0,0);
-printf("5:%d\n",sel_RangeListBox2);
 
-					//根据hLongOrShotListBox、和hTimeEdit 计算出对应时间内 最短或最长 N次间隔天数，并直接更新显示数据
-
+					//在case 7中，根据hLongOrShotListBox、和hTimeEdit 计算出对应时间内 最短或最长 N次间隔天数，并直接更新显示数据
 					break;
 				}
 				
@@ -356,34 +503,188 @@ printf("5:%d\n",sel_RangeListBox2);
 				{
 				case LBN_SELCHANGE:
 					sel_LongOrShotListBox = SendMessage((HWND)lParam,LB_GETCURSEL,0,0);
-printf("6:%d\n",sel_LongOrShotListBox);
 
-					//根据hRangeListBox2、和hTimeEdit 计算出对应时间内 最短或最长 N次间隔天数，并直接更新显示数据
-
+					//在case 7中，根据hRangeListBox2、和hTimeEdit 计算出对应时间内 最短或最长 N次间隔天数，并直接更新显示数据
 					break;
 				}
-				
+
 				//穿过执行
 			case 7://hTimesEdit
 					if(LOWORD (wParam)==7)
 					if (HIWORD (wParam) == EN_KILLFOCUS ){
 						GetWindowText(hTimesEdit,szBuffer,256);
-						i= atoi(szBuffer);
-						if(i<2 || i>100)
+						timeInputted= atoi(szBuffer);
+						if(timeInputted<2 || timeInputted>100)
 						{
-							printf("In edit:%d",i);
 							wsprintf(szBuffer,"%s",TEXT("2"));
 							SetWindowText(hTimesEdit,szBuffer);
 							MessageBox(hwnd,TEXT("输入无效！\n\n必须为2-100的整数"),TEXT("输入提示"),MB_ICONINFORMATION);
+							return 0;
 						}
-
 					}
-					
-					//根据hRangeListBox 和hRangeListBox2 计算出对应时间内 最短或最长 N次间隔天数，并直接更新显示数据
+					//case 5,6,7:
+					//根据hRangeListBox2 和hLongOrShotListBox 计算出对应时间内 最短或最长 N次间隔天数，并直接更新显示数据
+					countOfSignIn=0;
+					range = -1;
+					flagForEdit = 0;//初始为0,如果没进入则表明，未选择RangeListBox2，则不更新hStaticSignRange2
+					if(sel_RangeListBox2!=-1)//如果sel_RangeListBox2已经选择
+					{
+						flagForEdit=1;
+						//更新 hStaticSignRange2 对应的数据
+						if(sel_RangeListBox2==0) //一年
+						{
+							range=365;
+						}
+						else if(sel_RangeListBox2==1)//一月
+						{
+							range=30;
+						}
+						else if(sel_RangeListBox2==2)//一周
+						{
+							range=7;
+						}
+						//遍历当前所有所选项的的签到项
+						for(i=0;i<allSignIn.countInList[currentSignInSel] ;i++)
+						{
+							//如果签到项在时间范围内，进行记录
+							if(DaysBetween(allSignIn.SignList[currentSignInSel][i],SignInTemp)<=range)
+							{
+								countOfSignIn+=1;
+								if(countOfSignIn==1)//记录该范围内第一个签到项
+									signInTemp1=allSignIn.SignList[currentSignInSel][i];
+							}
+						}
+						if(countOfSignIn!=0)//如果有记录签到项记录最后一个
+							signInTemp2 = allSignIn.SignList[currentSignInSel][allSignIn.countInList[currentSignInSel]-1];
 
+						//在sel_RangeListBox2已经选择的基础上
+						if(sel_LongOrShotListBox==-1)//如果sel_LongOrShotListBox还未选择
+						{
+							wsprintf(szBuffer,TEXT(""));
+							SetWindowText(hStaticIntervalDays,szBuffer);
+						}
+						else //如果sel_LongOrShotListBox已经选择
+						{
+							minIntervalDay = 2147483647;
+							maxIntervalDay = -1;
+							//遍历当前所有所选项的的签到项
+							for(i=0;i<allSignIn.countInList[currentSignInSel] ;i++)
+							{
+								//如果签到项在时间范围内
+								if(DaysBetween(allSignIn.SignList[currentSignInSel][i],SignInTemp)<=range)
+								{
+									//如果当前项i 与i+timeInputted-1 项都存在的话，求间隔并比较
+									if(i+timeInputted-1<allSignIn.countInList[currentSignInSel])
+									{
+										//当sel_LongOrShotListBox =0 求最长N次间隔
+										if(sel_LongOrShotListBox==0)
+										{
+											maxIntervalDay =max(maxIntervalDay,DaysBetween(
+										    	allSignIn.SignList[currentSignInSel][i],
+												allSignIn.SignList[currentSignInSel][i+timeInputted-1]));
+										}
+										else 	//当sel_LongOrShotListBox =1 求最短N次间隔
+										{
+											minIntervalDay =min(minIntervalDay,DaysBetween(
+										    	allSignIn.SignList[currentSignInSel][i],
+												allSignIn.SignList[currentSignInSel][i+timeInputted-1]));
+										}
+									}
+								}//end of <if //如果签到项在时间范围内> 
+
+							}//end of <for //遍历当前所有所选项的的签到项>
+
+							if(sel_LongOrShotListBox==0)//当sel_LongOrShotListBox =0 保存最长N次间隔到hStaticSignRange2
+							{
+								wsprintf(szBuffer,TEXT("%d"),maxIntervalDay);
+							}
+							else//当sel_LongOrShotListBox =1 保存最短N次间隔到hStaticSignRange2
+							{
+								if(minIntervalDay == 2147483647)
+									wsprintf(szBuffer,TEXT("-1"));
+								else 
+									wsprintf(szBuffer,TEXT("%d"),minIntervalDay);
+							}
+							SetWindowText(hStaticIntervalDays,szBuffer);
+
+						}//end of <else //如果sel_LongOrShotListBox已经选择>
+
+					}//end of <if//如果sel_RangeListBox2已经选择>
+
+					if(flagForEdit==1)//表明这个count是经过if(sel_RangeListBox2!=-1)
+					if(countOfSignIn==0)//sel_RangeListBox2 还未选择
+					{
+						//更新 hStaticSignRange2 对应的数据
+						SetWindowText(hStaticSignRange2,TEXT("该时间范围内没有录入的签到项"));
+					}
+					else//sel_RangeListBox2 已经选择
+					{
+						//更新 hStaticSignRange2 对应的数据
+						wsprintf(szBuffer,TEXT("从已有记录的签到项 %d-%d-%d  ~ %d-%d-%d "),
+								signInTemp1.year , signInTemp1.month , signInTemp1.day,
+								signInTemp2.year , signInTemp2.month , signInTemp2.day);
+						SetWindowText(hStaticSignRange2,szBuffer);
+					}
 					break;
 			}
+		}
+		/*当窗口为“柱状图”窗口时*/
+		else if(hwnd==hDlgHistogram) 
+		{
+			switch(LOWORD (wParam))
+			{
+				case 4://	hDefaultYearButton 
 
+					if(HIWORD(wParam)==BN_CLICKED){
+						//将年份设置为默认并重画
+
+						yearToShow = defaultYearToShow;
+						//设置按钮的启用状态
+						EnableWindow(hNextYearButton,FALSE);
+						if(cYearInRecord==1)
+							EnableWindow(hLastYearButton,FALSE);
+
+					}
+					//穿过，到 case 7 刷新
+
+				case 6://	 hLastYearButton
+					
+					if(LOWORD (wParam)==6)
+						if(HIWORD(wParam)==BN_CLICKED){
+							//将年份上一年并重画
+							yearToShow = yearToShow-1;
+
+							//设置按钮的启用状态
+							EnableWindow(hNextYearButton,TRUE);
+							if(yearToShow == defaultYearToShow-cYearInRecord+1)
+								EnableWindow(hLastYearButton,FALSE);
+						}
+
+					//穿过，到 case 7 刷新
+
+				case 7://  hNextYearButton
+
+					if(LOWORD (wParam)==7)
+						if(HIWORD(wParam)==BN_CLICKED){
+							//将年份上一年并重画
+							yearToShow = yearToShow+1;
+
+							//设置按钮的启用状态
+							EnableWindow(hLastYearButton,TRUE);
+							if(yearToShow == defaultYearToShow)
+								EnableWindow(hNextYearButton,FALSE);
+						}
+
+						
+					//更新显示年份的static标签
+					wsprintf(szBuffer,TEXT("%d"),yearToShow);
+					SetWindowText(hStaticYearLabel,szBuffer);
+					InvalidateRect(hwnd,NULL,TRUE);
+					break;
+
+			}
+
+		}
 		return 0;
 
 	case WM_CLOSE:
@@ -396,8 +697,10 @@ printf("6:%d\n",sel_LongOrShotListBox);
 	return DefWindowProc (hwnd, message, wParam, lParam) ;
 }
 
+/*****************************************************************
+*	模块管理器 的 静态“按钮窗口”使用的消息处理函数 (主模块管理器)
+******************************************************************/
 
-//模块管理器 的 静态“按钮窗口”使用的消息处理函数 (主模块管理器)
 LRESULT CALLBACK ModuleButtonWindowProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HDC         hdc ;
@@ -616,7 +919,10 @@ LRESULT CALLBACK ModuleButtonWindowProc (HWND hwnd, UINT message, WPARAM wParam,
 	return CallWindowProc (pMM->OldModuleButton, hwnd, message, wParam,lParam);
 }
 
-//每个新模块的 静态“内容窗口”使用的消息处理函数 (主模块管理器)
+/*****************************************************************
+*	每个新模块的 静态“内容窗口”使用的消息处理函数 (主模块管理器)
+******************************************************************/
+
 LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	//得到原来的消息函数
@@ -635,10 +941,6 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 
 	static int cxWindow,cyWindow,cxChar,cyChar,i,j;
 
-	//签到模块数据
-	static int currentSignInSel;
-	struct tm *pTime;
-	time_t secondTime;
 
 	//可以在此消息处理函数中初始化各个模块的内容
 	switch(message)
@@ -703,19 +1005,19 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 									hDlgBaseData, (HMENU)11, (HINSTANCE)GetWindowLong(hDlgBaseData,GWL_HINSTANCE),NULL);
 
 				hRangeListBox1 = CreateWindow(TEXT("listbox"),NULL,WS_CHILD|WS_VISIBLE|LBS_STANDARD_NO_SORT,
-									20,20,60,70,
+									20,35,60,70,
 									hDlgBaseData, (HMENU)1, (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
 				
 				hStaticWord1 = CreateWindow(TEXT("static"),TEXT(" 共 _____ 次, 平均 _____ 天1次"),WS_CHILD|WS_VISIBLE|SS_LEFT,
-									80,20,250,30,
+									80,35,250,30,
 									hDlgBaseData, (HMENU)2, (HINSTANCE)GetWindowLong(hDlgBaseData,GWL_HINSTANCE),NULL);
 
-				hStaticTimes = CreateWindow(TEXT("static"),TEXT("XXX"),WS_CHILD|WS_VISIBLE|SS_LEFT|SS_BLACKFRAME,
-									105,20,40,30,
+				hStaticTimes = CreateWindow(TEXT("static"),TEXT(""),WS_CHILD|WS_VISIBLE|SS_CENTER,
+									105,35,40,30,
 									hDlgBaseData, (HMENU)3, (HINSTANCE)GetWindowLong(hDlgBaseData,GWL_HINSTANCE),NULL);
 
-				hStaticDaysOnce = CreateWindow(TEXT("static"),TEXT("XXX"),WS_CHILD|WS_VISIBLE|SS_LEFT|SS_BLACKFRAME,
-									205,20,40,30,
+				hStaticDaysOnce = CreateWindow(TEXT("static"),TEXT(""),WS_CHILD|WS_VISIBLE|SS_CENTER,
+									205,35,40,30,
 									hDlgBaseData, (HMENU)4, (HINSTANCE)GetWindowLong(hDlgBaseData,GWL_HINSTANCE),NULL);
 
 				hRangeListBox2 = CreateWindow(TEXT("listbox"),NULL,WS_CHILD|WS_VISIBLE|LBS_STANDARD_NO_SORT,
@@ -735,7 +1037,7 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 									hDlgBaseData, (HMENU)7, (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
 				oldEditProc = (WNDPROC)SetWindowLong(hTimesEdit,GWL_WNDPROC,(LONG)newEditProc);
 
-				hStaticIntervalDays = CreateWindow(TEXT("static"),TEXT("XXX"),WS_CHILD|WS_VISIBLE|SS_LEFT|SS_BLACKFRAME,
+				hStaticIntervalDays = CreateWindow(TEXT("static"),TEXT(""),WS_CHILD|WS_VISIBLE|SS_CENTER,
 									300,150+52,40,26,
 									hDlgBaseData, (HMENU)9, (HINSTANCE)GetWindowLong(hDlgBaseData,GWL_HINSTANCE),NULL);
 				
@@ -744,11 +1046,11 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 
 				//统计窗口"柱状图窗口"的绘制
 				hStaticTime = CreateWindow(TEXT("static"),TEXT("次数"),WS_CHILD|WS_VISIBLE|SS_LEFT,
-									20,20,40,30,
+									5,20,40,30,
 									hDlgHistogram, (HMENU)1, (HINSTANCE)GetWindowLong(hDlgBaseData,GWL_HINSTANCE),NULL);
 
 				hStaticMonth = CreateWindow(TEXT("static"),TEXT("月份"),WS_CHILD|WS_VISIBLE|SS_LEFT,
-									330,170,40,30,
+									345,170,40,30,
 									hDlgHistogram, (HMENU)2, (HINSTANCE)GetWindowLong(hDlgBaseData,GWL_HINSTANCE),NULL);
 				//	 *hStaticTimesNumber, *hStaticMonthNumber
 
@@ -756,7 +1058,7 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 									20,220,80,30,
 									hDlgHistogram, (HMENU)4, (HINSTANCE)GetWindowLong(hDlgHistogram,GWL_HINSTANCE),NULL);
 
-				hStaticYearLabel = CreateWindow(TEXT("static"),TEXT("XXX"),WS_CHILD|WS_VISIBLE|SS_LEFT|SS_BLACKFRAME,
+				hStaticYearLabel = CreateWindow(TEXT("static"),TEXT(""),WS_CHILD|WS_VISIBLE|SS_CENTER,
 									110,220,60,30,
 									hDlgHistogram, (HMENU)5, (HINSTANCE)GetWindowLong(hDlgHistogram,GWL_HINSTANCE),NULL);
 
@@ -767,7 +1069,7 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 				hNextYearButton = CreateWindow(TEXT("button"),TEXT("下一年"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,
 									260,220,60,30,
 									hDlgHistogram, (HMENU)7, (HINSTANCE)GetWindowLong(hDlgHistogram,GWL_HINSTANCE),NULL);
-				
+	
 				/** 业务数据逻辑处理部分  ***/
 
 				GetCurrentDirectory(256,filePath);
@@ -787,11 +1089,11 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 						exit(0);
 					}
 					//新建文件之后，初始化数据
-					countOfSignIn=3;
+					countOfSignIn=6;
 					fwrite(&countOfSignIn,sizeof(int),1,pSignInFile);
 					pSignInListTemp = (pSignIn)malloc(sizeof(SignIn)*countOfSignIn);
 					wsprintf(pSignInListTemp[0].name,TEXT("Routine"));
-					pSignInListTemp[0].year=2016;
+					pSignInListTemp[0].year=2014;
 					pSignInListTemp[0].month = 3;
 					pSignInListTemp[0].day = 31;
 
@@ -804,6 +1106,21 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 					pSignInListTemp[2].year=2016;
 					pSignInListTemp[2].month = 4;
 					pSignInListTemp[2].day = 9;
+					
+					wsprintf(pSignInListTemp[3].name,TEXT("Routine"));
+					pSignInListTemp[3].year=2016;
+					pSignInListTemp[3].month = 4;
+					pSignInListTemp[3].day = 16;
+					
+					wsprintf(pSignInListTemp[4].name,TEXT("Routine"));
+					pSignInListTemp[4].year=2016;
+					pSignInListTemp[4].month = 4;
+					pSignInListTemp[4].day = 17;
+					
+					wsprintf(pSignInListTemp[5].name,TEXT("Sport"));
+					pSignInListTemp[5].year=2016;
+					pSignInListTemp[5].month = 4;
+					pSignInListTemp[5].day = 14;
 					
 					fwrite(pSignInListTemp,sizeof(SignIn),countOfSignIn,pSignInFile);
 					
@@ -1075,6 +1392,10 @@ HWND hStaticTime, hStaticMonth , *hStaticTimesNumber, *hStaticMonthNumber,
 					MessageBox(hwnd,TEXT("未选择签到项！\n\n请先选择或创建签到项！ :)"),TEXT("统计提示"),MB_ICONINFORMATION);
 					break;
 				}
+
+				//打开前发送自定义消息，初始化窗口
+				SendMessage(hDlgBaseData,WM_USER+2,0,0);
+
 				ShowWindow(hDlgBaseData ,SW_SHOW);
 
 				break;
@@ -1085,6 +1406,10 @@ HWND hStaticTime, hStaticMonth , *hStaticTimesNumber, *hStaticMonthNumber,
 					MessageBox(hwnd,TEXT("未选择签到项！\n\n请先选择或创建签到项！ :)"),TEXT("统计提示"),MB_ICONINFORMATION);
 					break;
 				}
+				
+				//打开前发送自定义消息，初始化窗口
+				SendMessage(hDlgHistogram,WM_USER+2,0,0);
+
 				ShowWindow(hDlgHistogram,SW_SHOW);
 
 				break;
@@ -1106,9 +1431,14 @@ HWND hStaticTime, hStaticMonth , *hStaticTimesNumber, *hStaticMonthNumber,
 	return CallWindowProc (oldModuleContent, hwnd, message, wParam,lParam);
 }
 
-//第二个模块下的子模块管理器的消息处理函数
+/*****************************************************************
+*  第二个模块下的子模块管理器的消息处理函数
+******************************************************************/
 
-//模块管理器 的 底层静态“静态窗口” 使用的消息处理函数  (第二个模块管理器)
+/*****************************************************************
+*  模块管理器 的 底层静态“静态窗口” 使用的消息处理函数  (第二个模块管理器)
+******************************************************************/
+
 LRESULT CALLBACK ModuleManagerProc2 (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam){
 	PMODULEMANAGER pMM = GetPModuleManagerByStaticHWND(hwnd);
 	CheckNullErrorAndQuit(pMM,14,TEXT("Can't Get ModuleManager By HWND in ModuleManagerProc2()!"));
@@ -1125,8 +1455,10 @@ LRESULT CALLBACK ModuleManagerProc2 (HWND hwnd, UINT message, WPARAM wParam, LPA
 	return  CallWindowProc (pMM->OldModuleManager, hwnd, message, wParam,lParam) ;
 }
 
+/*****************************************************************
+*  模块管理器 的 静态“按钮窗口”使用的消息处理函数 (第二个模块管理器)
+******************************************************************/
 
-//模块管理器 的 静态“按钮窗口”使用的消息处理函数 (第二个模块管理器)
 LRESULT CALLBACK ModuleButtonWindowProc2 (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam){
 	HDC         hdc ;
     PAINTSTRUCT ps ;
@@ -1348,7 +1680,10 @@ LRESULT CALLBACK ModuleButtonWindowProc2 (HWND hwnd, UINT message, WPARAM wParam
 	return CallWindowProc (pMM->OldModuleButton, hwnd, message, wParam,lParam);
 }
 
-//每个新模块的 静态“内容窗口”使用的消息处理函数  (第二个模块管理器)
+/*****************************************************************
+*  每个新模块的 静态“内容窗口”使用的消息处理函数  (第二个模块管理器)
+******************************************************************/
+
 LRESULT CALLBACK ModuleContentWindowProc2 (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam){
 	//得到原来的消息函数
 	WNDPROC oldModuleContent = GetOldContentWndProcByContentHWND(hwnd);
@@ -1493,8 +1828,10 @@ LRESULT CALLBACK ModuleContentWindowProc2 (HWND hwnd, UINT message, WPARAM wPara
 	return CallWindowProc (oldModuleContent, hwnd, message, wParam,lParam);
 }
 
+/*****************************************************************
+*          本程序所有出现的Edit控件的新的消息处理函数
+******************************************************************/
 
-//本程序所有出现的Edit控件的新的消息处理函数
 LRESULT CALLBACK newEditProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch(message)
