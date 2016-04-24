@@ -102,7 +102,7 @@ static MapList ModuleMapList;
 static TCHAR szBuffer[256];
 static TCHAR szBuffer2[256];
 
-static WNDPROC oldEditProc;
+static WNDPROC oldEditProc[2]; //有新的编辑控件要使用时，需要重新指定下标
 
 //定义用于计算签到间隔的 数组
 static int DAY_IN_MONTH[2][12] = {

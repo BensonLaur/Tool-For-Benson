@@ -47,6 +47,8 @@ static HWND hStaticSignRange1,hRangeListBox1 ,hStaticWord1, hStaticTimes , hStat
        hRangeListBox2 , hLongOrShotListBox ,hTimesEdit, hStaticWord2,hStaticIntervalDays;
 static HWND hStaticSignRange2,hStaticTime, hStaticMonth , *hStaticTimesNumber, *hStaticMonthNumber,
 	   hDefaultYearButton,hStaticYearLabel, hNextYearButton, hLastYearButton;
+//添加窗口的句柄
+static HWND hDlgAddItem ,hStaticAddTipLabel,hEditAddNewItem,hConfirmButton_AddSignIn,hCancelButton_AddSignIn;
 
 //第二个模块 “收藏” 的所有句柄  
 
@@ -68,7 +70,7 @@ static HWND hDlgAddNetLink, hDlgAddLocalLink,
 static AllSignIn allSignIn;
 static FILE *pSignInFile;
 static pSignIn pSignInListTemp;  //程序启动后文件读取后关闭，签到数据的更改缓冲于此，软件关闭时才更新写入
-static int countOfSignIn;
+static int countOfSignIn_All;
 static SignIn SignInTemp;
 static TCHAR filePath[256];
 static int dlgAnswer;
@@ -241,8 +243,8 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			  PostQuitMessage (0) ;
 			  return 0;
 		  }
-		  fwrite(&countOfSignIn,sizeof(int),1,pSignInFile);
-		  fwrite(pSignInListTemp,sizeof(SignIn),countOfSignIn,pSignInFile);
+		  fwrite(&countOfSignIn_All,sizeof(int),1,pSignInFile);
+		  fwrite(pSignInListTemp,sizeof(SignIn),countOfSignIn_All,pSignInFile);
 		  fclose(pSignInFile);
 		  free(pSignInListTemp);
           PostQuitMessage (0) ;
@@ -253,6 +255,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 /*****************************************************************
 *	两个子窗口 hDlgBaseData 和 hDlgHistogram 的消息处理函数
+*   以及 新添签到的确认窗口 hDlgAddItem 的消息处理函数
 ******************************************************************/
 
 LRESULT CALLBACK SubWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -262,13 +265,15 @@ LRESULT CALLBACK SubWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 	RECT rect;
 	static int xOrigin=50,yOrigin=180,widthHistogram=280,heightHistogram=160,cxBlock,cyBlock,maxCount,
 				monthCountArray[12],yearToShow,defaultYearToShow,cYearInRecord;
-	static int i,timeInputted=2,countOfSignIn,range,minIntervalDay=-1,maxIntervalDay=-1,flagForEdit;
+	static int i,j,timeInputted=2,countOfSignIn_inRange,range,minIntervalDay=-1,maxIntervalDay=-1,flagForEdit;
     static int sel_RangeListBox1=-1, sel_RangeListBox2=-1, sel_LongOrShotListBox=-1;
 
 	SignIn signInTemp1,signInTemp2;
 	
 	struct tm *pTime;
 	time_t secondTime;
+
+	static COLORREF colorOfEditText;
 
 	switch(message)
 	{
@@ -343,6 +348,11 @@ LRESULT CALLBACK SubWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 			defaultYearToShow = SignInTemp.year;
 			yearToShow =defaultYearToShow;
 
+			//由currentSignInSel 得到当前具体的签到名，再得到其对应的在 allSignIn.SignList 的第一个维度的位置
+
+
+
+
 			//记录当前有签到记录的年数
 			cYearInRecord= defaultYearToShow - allSignIn.SignList[currentSignInSel][0].year+1;
 
@@ -352,9 +362,12 @@ LRESULT CALLBACK SubWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 
 			//根据情况决定按钮的启用状态
 			EnableWindow(hNextYearButton,FALSE);
-			if(cYearInRecord==1)
+			if(cYearInRecord==1){
 				EnableWindow(hLastYearButton,FALSE);
-			
+			}
+			else{//由于上一次的签到项状态不知，有可能是禁用状态，所以必须启用
+				EnableWindow(hLastYearButton,TRUE);
+			}
 		 }
 		break;
 	case WM_PAINT:
@@ -433,7 +446,7 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 					sel_RangeListBox1 = SendMessage((HWND)lParam,LB_GETCURSEL,0,0);
 
 					//直接计算出对应时间内 有多少次签到，和平均多少天一次，并直接更新显示数据
-					countOfSignIn=0;
+					countOfSignIn_inRange=0;
 					range = -1;
 					if(sel_RangeListBox1==0) //一周
 					{
@@ -448,21 +461,21 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 						range=365;
 					}
 					//遍历当前所有所选项的的签到项
-						for(i=0;i<allSignIn.countInList[currentSignInSel] ;i++)
+					for(i=0;i<allSignIn.countInList[currentSignInSel] ;i++)
 						{
 							//如果签到项在时间范围内，进行记录
 							if(DaysBetween(allSignIn.SignList[currentSignInSel][i],SignInTemp)<=range)
 							{
-								countOfSignIn+=1;
-								if(countOfSignIn==1)//记录该范围内第一个签到项
+								countOfSignIn_inRange+=1;
+								if(countOfSignIn_inRange==1)//记录该范围内第一个签到项
 									signInTemp1=allSignIn.SignList[currentSignInSel][i];
 							}
 						}
-						if(countOfSignIn!=0)//如果有记录签到项记录最后一个
+					if(countOfSignIn_inRange!=0)//如果有记录签到项记录最后一个
 							signInTemp2 = allSignIn.SignList[currentSignInSel][allSignIn.countInList[currentSignInSel]-1];
 
 					//直接更新显示数据
-					if(countOfSignIn==0){
+					if(countOfSignIn_inRange==0){
 
 						SetWindowText(hStaticSignRange1,TEXT("该时间范围内没有录入的签到项"));
 						wsprintf(szBuffer,TEXT("%d"),0);
@@ -476,9 +489,9 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 								signInTemp2.year , signInTemp2.month , signInTemp2.day);
 							SetWindowText(hStaticSignRange1,szBuffer);
 
-							wsprintf(szBuffer,TEXT("%d"),countOfSignIn);
+							wsprintf(szBuffer,TEXT("%d"),countOfSignIn_inRange);
 							SetWindowText(hStaticTimes,szBuffer);
-							wsprintf(szBuffer,TEXT("%d"),range/countOfSignIn);
+							wsprintf(szBuffer,TEXT("%d"),range/countOfSignIn_inRange);
 							SetWindowText(hStaticDaysOnce,szBuffer);
 					}
 					break;
@@ -524,7 +537,7 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 					}
 					//case 5,6,7:
 					//根据hRangeListBox2 和hLongOrShotListBox 计算出对应时间内 最短或最长 N次间隔天数，并直接更新显示数据
-					countOfSignIn=0;
+					countOfSignIn_inRange=0;
 					range = -1;
 					flagForEdit = 0;//初始为0,如果没进入则表明，未选择RangeListBox2，则不更新hStaticSignRange2
 					if(sel_RangeListBox2!=-1)//如果sel_RangeListBox2已经选择
@@ -549,12 +562,12 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 							//如果签到项在时间范围内，进行记录
 							if(DaysBetween(allSignIn.SignList[currentSignInSel][i],SignInTemp)<=range)
 							{
-								countOfSignIn+=1;
-								if(countOfSignIn==1)//记录该范围内第一个签到项
+								countOfSignIn_inRange+=1;
+								if(countOfSignIn_inRange==1)//记录该范围内第一个签到项
 									signInTemp1=allSignIn.SignList[currentSignInSel][i];
 							}
 						}
-						if(countOfSignIn!=0)//如果有记录签到项记录最后一个
+						if(countOfSignIn_inRange!=0)//如果有记录签到项记录最后一个
 							signInTemp2 = allSignIn.SignList[currentSignInSel][allSignIn.countInList[currentSignInSel]-1];
 
 						//在sel_RangeListBox2已经选择的基础上
@@ -612,7 +625,7 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 					}//end of <if//如果sel_RangeListBox2已经选择>
 
 					if(flagForEdit==1)//表明这个count是经过if(sel_RangeListBox2!=-1)
-					if(countOfSignIn==0)//sel_RangeListBox2 还未选择
+					if(countOfSignIn_inRange==0)//sel_RangeListBox2 还未选择
 					{
 						//更新 hStaticSignRange2 对应的数据
 						SetWindowText(hStaticSignRange2,TEXT("该时间范围内没有录入的签到项"));
@@ -685,10 +698,98 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 			}
 
 		}
-		return 0;
+		
+		/*当窗口是 新添签到 对话框窗口时*/
+		else if(hwnd==hDlgAddItem)
+		{
+			switch(LOWORD (wParam))
+			{
+				case 2://	hEditAddNewItem
+					if(HIWORD (wParam)==EN_UPDATE)//EN_UPDATE 会在输入改变后向父窗口发送WM_CTLCOLOREDIT
+					{
+						GetWindowText(hEditAddNewItem,szBuffer,256);
+						for(i=0;i<allSignIn.countOfItem;i++)
+						{
+							if(lstrcmp(szBuffer,allSignIn.SignList[i][0].name)==0)//重名，红色提示
+							{	
+								EnableWindow(hConfirmButton_AddSignIn,FALSE);
+								//改变字体颜色为暗红色 
+								colorOfEditText = RGB(150,0,0);
+								break;
+							}
+						}
+						
+						if(i==allSignIn.countOfItem)//无相同的匹配
+						{
+							//不符合命名规则的情况
+							if(szBuffer[0]=='\0')
+							{
+								EnableWindow(hConfirmButton_AddSignIn,FALSE);
+								colorOfEditText = RGB(150,0,0);
+								break;
+							}
 
+							//符合规则，改变字体颜色为暗绿色
+							EnableWindow(hConfirmButton_AddSignIn,TRUE);
+							colorOfEditText = RGB(0,150,0);
+						}
+					}
+					break;
+				case 3://	hConfirmButton_AddSignIn
+					GetWindowText(hEditAddNewItem,szBuffer,256);
+
+					//在allSignIn 结构中新分配一个内存项，并更新相关数据
+					allSignIn.countOfItem += 1;
+					allSignIn.countInList = (int*)realloc(allSignIn.countInList,sizeof(int)*allSignIn.countOfItem);
+					allSignIn.countInList[allSignIn.countOfItem-1]=0;
+					allSignIn.SignList = (pSignIn*)realloc(allSignIn.SignList,sizeof(pSignIn)*allSignIn.countOfItem);
+					allSignIn.SignList[allSignIn.countOfItem-1] = (pSignIn)malloc(sizeof(SignIn)*1);
+					lstrcpy(allSignIn.SignList[allSignIn.countOfItem-1][0].name,szBuffer);
+					allSignIn.SignList[allSignIn.countOfItem-1][0].year =0;
+					allSignIn.SignList[allSignIn.countOfItem-1][0].month =0;
+					allSignIn.SignList[allSignIn.countOfItem-1][0].day =0;
+
+					//而不去更改countOfSignIn_All 和 pSignInListTemp ，只有签过到之后以备结束时写入文件
+
+					//更新显示签到项的ListBox
+					SendMessage (hSignInListBox, LB_ADDSTRING, 0, (LPARAM) &allSignIn.SignList[allSignIn.countOfItem-1][0].name) ;
+					
+					//给父窗口发送关闭消息
+					SendMessage(hDlgAddItem,WM_CLOSE,0,0);
+//////////////////////////////////////////////////////////////////////////////
+				printf("countOfSignIn:%d\n",countOfSignIn_All);
+				for(i=0;i<allSignIn.countOfItem;i++)
+				{
+					for(j=0;j<allSignIn.countInList[i];j++)
+					{
+						printf("N:%s %d %d %d\n",allSignIn.SignList[i][j].name,allSignIn.SignList[i][j].year,allSignIn.SignList[i][j].month,
+							allSignIn.SignList[i][j].day);
+					}
+					printf("--\n");
+				}
+					break;
+				case 4://	hCancelButton_AddSignIn
+					//给父窗口发送关闭消息
+					SendMessage(hDlgAddItem,WM_CLOSE,0,0);
+
+					break;
+			}
+		}
+		return 0;
+	case  WM_CTLCOLOREDIT:
+		if((HWND)lParam==hEditAddNewItem){
+			//绘制colorOfEditText颜色的字体
+			SetTextColor((HDC)wParam,colorOfEditText);
+        
+           return (LRESULT)GetStockObject(WHITE_BRUSH);
+		}
+		break;
 	case WM_CLOSE:
-		ShowWindow(hwnd,SW_HIDE);	
+		if(hwnd==hDlgAddItem)
+			break; //如果是 新添签到 对话框，交给DefWindowProc (hwnd, message, wParam, lParam) ;默认处理（销毁！）
+
+		ShowWindow(hwnd,SW_HIDE);
+		
 
 		return 0;
 
@@ -939,7 +1040,9 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 	PMODULEMANAGER pMM = GetPModuleManagerByContentHWND(hwnd);
 	CheckNullErrorAndQuit(pMM,12,TEXT("Can't Get ModuleManager By ContentHWND in ModuleContentWindowProc()!"));
 
-	static int cxWindow,cyWindow,cxChar,cyChar,i,j;
+	static int cxWindow,cyWindow,cxChar,cyChar,i,j,cxScreen,cyScreen;
+	RECT rect;
+	POINT leftTopPoint;
 
 
 	//可以在此消息处理函数中初始化各个模块的内容
@@ -1035,7 +1138,7 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 				hTimesEdit = CreateWindow(TEXT("edit"),NULL,WS_CHILD|WS_VISIBLE|WS_BORDER|ES_LEFT,
 									160,150+52,40,26,
 									hDlgBaseData, (HMENU)7, (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
-				oldEditProc = (WNDPROC)SetWindowLong(hTimesEdit,GWL_WNDPROC,(LONG)newEditProc);
+				oldEditProc[0] = (WNDPROC)SetWindowLong(hTimesEdit,GWL_WNDPROC,(LONG)newEditProc);
 
 				hStaticIntervalDays = CreateWindow(TEXT("static"),TEXT(""),WS_CHILD|WS_VISIBLE|SS_CENTER,
 									300,150+52,40,26,
@@ -1089,9 +1192,9 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 						exit(0);
 					}
 					//新建文件之后，初始化数据
-					countOfSignIn=6;
-					fwrite(&countOfSignIn,sizeof(int),1,pSignInFile);
-					pSignInListTemp = (pSignIn)malloc(sizeof(SignIn)*countOfSignIn);
+					countOfSignIn_All=7;
+					fwrite(&countOfSignIn_All,sizeof(int),1,pSignInFile);
+					pSignInListTemp = (pSignIn)malloc(sizeof(SignIn)*countOfSignIn_All);
 					wsprintf(pSignInListTemp[0].name,TEXT("Routine"));
 					pSignInListTemp[0].year=2014;
 					pSignInListTemp[0].month = 3;
@@ -1122,20 +1225,25 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 					pSignInListTemp[5].month = 4;
 					pSignInListTemp[5].day = 14;
 					
-					fwrite(pSignInListTemp,sizeof(SignIn),countOfSignIn,pSignInFile);
+					wsprintf(pSignInListTemp[6].name,TEXT("Routine"));
+					pSignInListTemp[6].year=2016;
+					pSignInListTemp[6].month = 4;
+					pSignInListTemp[6].day = 17;
+					
+					fwrite(pSignInListTemp,sizeof(SignIn),countOfSignIn_All,pSignInFile);
 					
 					free(pSignInListTemp);
 				}
 				//从头开始读取文件数据
 				fseek(pSignInFile,0,SEEK_SET);
-				fread(&countOfSignIn,sizeof(int),1,pSignInFile);
+				fread(&countOfSignIn_All,sizeof(int),1,pSignInFile);
 
 				//将文件里的数据读出，按存放于结构体AllSignIn中
-				pSignInListTemp = (pSignIn)malloc(sizeof(SignIn)*countOfSignIn);
-				fread(pSignInListTemp,sizeof(SignIn),countOfSignIn,pSignInFile);
+				pSignInListTemp = (pSignIn)malloc(sizeof(SignIn)*countOfSignIn_All);
+				fread(pSignInListTemp,sizeof(SignIn),countOfSignIn_All,pSignInFile);
 				fclose(pSignInFile);
 
-				for(i=0;i<countOfSignIn;i++)
+				for(i=0;i<countOfSignIn_All;i++)
 				{
 					if(i==0){
 						
@@ -1174,7 +1282,7 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 					}
 				}
 
-				printf("countOfSignIn:%d\n",countOfSignIn);
+				printf("countOfSignIn_All:%d\n",countOfSignIn_All);
 				for(i=0;i<allSignIn.countOfItem;i++)
 				{
 					for(j=0;j<allSignIn.countInList[i];j++)
@@ -1279,7 +1387,7 @@ HWND hStaticTime, hStaticMonth , *hStaticTimesNumber, *hStaticMonthNumber,
 		break;
 
 	case WM_COMMAND:
-		if( id == 0 )
+		if( id == 0 )//是第一个模块
 		{
 			switch(LOWORD (wParam))
 			{
@@ -1295,6 +1403,49 @@ HWND hStaticTime, hStaticMonth , *hStaticTimesNumber, *hStaticMonthNumber,
 				}
 				break;
 			case 2: //hAddItemButton:
+				//得到主窗口的左上角的在屏幕上的位置，并以此计算出子窗口的位置
+				GetClientRect(hwnd,&rect);
+				leftTopPoint.x=rect.left;
+				leftTopPoint.y=rect.top;
+				ClientToScreen(hwnd,&leftTopPoint);
+				leftTopPoint.x += 50;
+				leftTopPoint.y += 50;
+				
+				cxScreen = GetSystemMetrics(SM_CXSCREEN);
+				cyScreen = GetSystemMetrics(SM_CYSCREEN);
+				cyChar = HIWORD (GetDialogBaseUnits ()) ;
+
+				leftTopPoint.x = min(leftTopPoint.x,cxScreen-400);
+				leftTopPoint.y = min(leftTopPoint.y,cyScreen-400);
+
+				//创建子窗口，置于刚才得出的新的位置
+				hDlgAddItem = CreateWindow(szSubWindowClassName,TEXT("添加签到项"),WS_OVERLAPPED|WS_SYSMENU|WS_CAPTION|WS_DLGFRAME,
+											leftTopPoint.x,leftTopPoint.y,300,150,
+											hwnd,NULL,(HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);//父窗口为staticContentBoard
+
+				hStaticAddTipLabel = CreateWindow(TEXT("static"),TEXT("新的签到名"),WS_CHILD|WS_VISIBLE|SS_LEFT,
+											20,25,80,cyChar*2,
+											hDlgAddItem,(HMENU)1,(HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
+
+				hEditAddNewItem = CreateWindow(TEXT("edit"),NULL,WS_CHILD|WS_VISIBLE|WS_BORDER|ES_LEFT|ES_AUTOHSCROLL,
+											101,25,180,cyChar*2,
+											hDlgAddItem,(HMENU)2,(HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
+				oldEditProc[1]=(WNDPROC)SetWindowLong(hEditAddNewItem,GWL_WNDPROC,(LONG)newEditProc);
+
+				hConfirmButton_AddSignIn = CreateWindow(TEXT("button"),TEXT("确认"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,
+											100,30+cyChar*2+10,50,cyChar*2,
+											hDlgAddItem,(HMENU)3,(HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
+
+				hCancelButton_AddSignIn = CreateWindow(TEXT("button"),TEXT("取消"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,
+											170,30+cyChar*2+10,50,cyChar*2,
+											hDlgAddItem,(HMENU)4,(HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
+				
+				//默认不启用确认按钮
+				EnableWindow(hConfirmButton_AddSignIn,FALSE);
+
+				//已完成初始化，使对话框窗口可见
+				ShowWindow(hDlgAddItem,SW_SHOW);
+										
 					
 				break;
 			case 3: //hDeleteItemButton:
@@ -1352,10 +1503,10 @@ HWND hStaticTime, hStaticMonth , *hStaticTimesNumber, *hStaticMonthNumber,
 								allSignIn.SignList[i] = (pSignIn)realloc(allSignIn.SignList[i],sizeof(SignIn)*allSignIn.countInList[i]);
 								allSignIn.SignList[i][allSignIn.countInList[i]-1] = SignInTemp;
 
-								//同时更改countOfSignIn 和 pSignInListTemp 以备结束时写入文件
-								countOfSignIn += 1;
-								pSignInListTemp = (pSignIn)realloc(pSignInListTemp,sizeof(SignIn)*countOfSignIn);
-								pSignInListTemp[countOfSignIn-1] = SignInTemp;
+								//同时更改countOfSignIn_All 和 pSignInListTemp 以备结束时写入文件
+								countOfSignIn_All += 1;
+								pSignInListTemp = (pSignIn)realloc(pSignInListTemp,sizeof(SignIn)*countOfSignIn_All);
+								pSignInListTemp[countOfSignIn_All-1] = SignInTemp;
 								
 								//签到成功提示
 								wsprintf(szBuffer2,TEXT("签到项：%s  %d-%d-%d  签到成功！"),szBuffer,SignInTemp.year,
@@ -1366,8 +1517,8 @@ HWND hStaticTime, hStaticMonth , *hStaticTimesNumber, *hStaticMonthNumber,
 						break;
 					}
 				}
-/*
-				printf("countOfSignIn:%d\n",countOfSignIn);
+
+				printf("---After signIn---countOfSignIn_All:%d\n",countOfSignIn_All);
 				for(i=0;i<allSignIn.countOfItem;i++)
 				{
 					for(j=0;j<allSignIn.countInList[i];j++)
@@ -1378,11 +1529,11 @@ HWND hStaticTime, hStaticMonth , *hStaticTimesNumber, *hStaticMonthNumber,
 					printf("\n");
 				}
 				printf("In Buffer SignIn\n");
-				for(i=0;i<countOfSignIn;i++)
+				for(i=0;i<countOfSignIn_All;i++)
 				{
 					printf("N:%s %d %d %d\n",pSignInListTemp[i].name,pSignInListTemp[i].year,pSignInListTemp[i].month,pSignInListTemp[i].day);
 				}
-		*/		
+			
 					
 
 				break;
@@ -1418,7 +1569,7 @@ HWND hStaticTime, hStaticMonth , *hStaticTimesNumber, *hStaticMonthNumber,
 			}
 
 		}
-		else if(id == 2)
+		else if(id == 2)//是第二个模块
 		{
 
 		}
@@ -1442,7 +1593,7 @@ HWND hStaticTime, hStaticMonth , *hStaticTimesNumber, *hStaticMonthNumber,
 LRESULT CALLBACK ModuleManagerProc2 (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam){
 	PMODULEMANAGER pMM = GetPModuleManagerByStaticHWND(hwnd);
 	CheckNullErrorAndQuit(pMM,14,TEXT("Can't Get ModuleManager By HWND in ModuleManagerProc2()!"));
-	RECT rect;
+//	RECT rect;
 
 	switch(message)
 	{
@@ -1834,18 +1985,33 @@ LRESULT CALLBACK ModuleContentWindowProc2 (HWND hwnd, UINT message, WPARAM wPara
 
 LRESULT CALLBACK newEditProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	WNDPROC oldEditProcChosen;
+//	HDC hdc;
+
 	switch(message)
 	{
 	case WM_KEYDOWN:
-		if(wParam==VK_RETURN)
+		if(wParam==VK_RETURN){//捕捉Edit控件的回车事件
+
+			//使对应的Edit窗口失去焦点，从而在父窗口得到其EN_KILLFOCUS事件
 			if(GetFocus()==hTimesEdit){
 				SetFocus(GetParent(hwnd));
 			}
+			if(GetFocus()==hEditAddNewItem){
+				SetFocus(GetParent(hwnd));
+			}
+		}
 		break;
 
 	}
 
-	return  CallWindowProc (oldEditProc, hwnd, message, wParam,lParam) ;
+	//根据调用消息的Edit窗口选择其相对应的回调函数
+	if(hwnd==hTimesEdit)	
+		oldEditProcChosen = oldEditProc[0];
+	else if(hwnd==hEditAddNewItem)
+		oldEditProcChosen = oldEditProc[1];
+
+	return  CallWindowProc (oldEditProcChosen, hwnd, message, wParam,lParam) ;
 }
 
 // 当前错误提示，用到20
