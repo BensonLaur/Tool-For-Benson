@@ -348,6 +348,11 @@ LRESULT CALLBACK SubWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 			defaultYearToShow = SignInTemp.year;
 			yearToShow =defaultYearToShow;
 
+			//由currentSignInSel 得到当前具体的签到名，再得到其对应的在 allSignIn.SignList 的第一个维度的位置
+
+
+
+
 			//记录当前有签到记录的年数
 			cYearInRecord= defaultYearToShow - allSignIn.SignList[currentSignInSel][0].year+1;
 
@@ -693,6 +698,7 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 			}
 
 		}
+		
 		/*当窗口是 新添签到 对话框窗口时*/
 		else if(hwnd==hDlgAddItem)
 		{
@@ -777,6 +783,7 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
         
            return (LRESULT)GetStockObject(WHITE_BRUSH);
 		}
+		break;
 	case WM_CLOSE:
 		if(hwnd==hDlgAddItem)
 			break; //如果是 新添签到 对话框，交给DefWindowProc (hwnd, message, wParam, lParam) ;默认处理（销毁！）
@@ -1185,7 +1192,7 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 						exit(0);
 					}
 					//新建文件之后，初始化数据
-					countOfSignIn_All=6;
+					countOfSignIn_All=7;
 					fwrite(&countOfSignIn_All,sizeof(int),1,pSignInFile);
 					pSignInListTemp = (pSignIn)malloc(sizeof(SignIn)*countOfSignIn_All);
 					wsprintf(pSignInListTemp[0].name,TEXT("Routine"));
@@ -1217,6 +1224,11 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 					pSignInListTemp[5].year=2016;
 					pSignInListTemp[5].month = 4;
 					pSignInListTemp[5].day = 14;
+					
+					wsprintf(pSignInListTemp[6].name,TEXT("Routine"));
+					pSignInListTemp[6].year=2016;
+					pSignInListTemp[6].month = 4;
+					pSignInListTemp[6].day = 17;
 					
 					fwrite(pSignInListTemp,sizeof(SignIn),countOfSignIn_All,pSignInFile);
 					
