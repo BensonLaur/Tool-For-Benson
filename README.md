@@ -4,15 +4,15 @@
 This is a application design for myself ,which implements the functions I want.
 
 
-The functions include sign in and Favorites so far.
+The functions include sign in and Favorites so far. And the functions have been building......
 
-requiment:
+###Requiment:
 This project is ran with VC++ IDE,althouth the API I use is traditional windows API, which
 is what I am learning.
 
 
 
-Application description:
+###Application description:
 
 0, The language of UI is Chinese.
 
@@ -28,4 +28,5 @@ Application description:
    I just need to add new new name to the char** structure and add corresponding 
 code,modulare design make
  it easy to do that.
+ 
 
