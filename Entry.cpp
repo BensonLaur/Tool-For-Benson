@@ -266,7 +266,7 @@ LRESULT CALLBACK SubWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 	static int xOrigin=50,yOrigin=180,widthHistogram=280,heightHistogram=160,cxBlock,cyBlock,maxCount,
 				monthCountArray[12],yearToShow,defaultYearToShow,cYearInRecord;
 	static int i,j,timeInputted=2,countOfSignIn_inRange,range,minIntervalDay=-1,maxIntervalDay=-1,flagForEdit;
-    static int sel_RangeListBox1=-1, sel_RangeListBox2=-1, sel_LongOrShotListBox=-1;
+    static int sel_RangeListBox1=-1, sel_RangeListBox2=-1, sel_LongOrShotListBox=-1,currentIndexSel;
 
 	SignIn signInTemp1,signInTemp2;
 	
@@ -349,12 +349,13 @@ LRESULT CALLBACK SubWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 			yearToShow =defaultYearToShow;
 
 			//由currentSignInSel 得到当前具体的签到名，再得到其对应的在 allSignIn.SignList 的第一个维度的位置
-
-
+			SendMessage(hSignInListBox,LB_GETTEXT,currentSignInSel,(LPARAM)szBuffer);
+			for(i=0;i<allSignIn.countOfItem;i++)
+				if(lstrcmp(szBuffer,allSignIn.SignList[i][0].name)==0)currentIndexSel=i;
 
 
 			//记录当前有签到记录的年数
-			cYearInRecord= defaultYearToShow - allSignIn.SignList[currentSignInSel][0].year+1;
+			cYearInRecord= defaultYearToShow - allSignIn.SignList[currentIndexSel][0].year+1;
 
 			//更新显示年份的static标签
 			wsprintf(szBuffer,TEXT("%d"),yearToShow);
@@ -384,11 +385,17 @@ LRESULT CALLBACK SubWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 			cxBlock = widthHistogram/(12+1);
 			maxCount = 0;
 			memset(monthCountArray,0,12*sizeof(int));
-			for(i=0;i<allSignIn.countInList[currentSignInSel];i++)
+			
+			//由currentSignInSel 得到当前具体的签到名，再得到其对应的在 allSignIn.SignList 的第一个维度的位置
+			SendMessage(hSignInListBox,LB_GETTEXT,currentSignInSel,(LPARAM)szBuffer);
+			for(i=0;i<allSignIn.countOfItem;i++)
+				if(lstrcmp(szBuffer,allSignIn.SignList[i][0].name)==0)currentIndexSel=i;
+
+			for(i=0;i<allSignIn.countInList[currentIndexSel];i++)
 			{
-				if(allSignIn.SignList[currentSignInSel][i].year==yearToShow)
+				if(allSignIn.SignList[currentIndexSel][i].year==yearToShow)
 				{
-					monthCountArray[allSignIn.SignList[currentSignInSel][i].month-1]++;
+					monthCountArray[allSignIn.SignList[currentIndexSel][i].month-1]++;
 				}
 			}
 			for(i=0;i<12;i++)
@@ -460,19 +467,25 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 					{
 						range=365;
 					}
+
+					//由currentSignInSel 得到当前具体的签到名，再得到其对应的在 allSignIn.SignList 的第一个维度的位置
+					SendMessage(hSignInListBox,LB_GETTEXT,currentSignInSel,(LPARAM)szBuffer);
+					for(i=0;i<allSignIn.countOfItem;i++)
+						if(lstrcmp(szBuffer,allSignIn.SignList[i][0].name)==0)currentIndexSel=i;
+
 					//遍历当前所有所选项的的签到项
-					for(i=0;i<allSignIn.countInList[currentSignInSel] ;i++)
+					for(i=0;i<allSignIn.countInList[currentIndexSel] ;i++)
 						{
 							//如果签到项在时间范围内，进行记录
-							if(DaysBetween(allSignIn.SignList[currentSignInSel][i],SignInTemp)<=range)
+							if(DaysBetween(allSignIn.SignList[currentIndexSel][i],SignInTemp)<=range)
 							{
 								countOfSignIn_inRange+=1;
 								if(countOfSignIn_inRange==1)//记录该范围内第一个签到项
-									signInTemp1=allSignIn.SignList[currentSignInSel][i];
+									signInTemp1=allSignIn.SignList[currentIndexSel][i];
 							}
 						}
 					if(countOfSignIn_inRange!=0)//如果有记录签到项记录最后一个
-							signInTemp2 = allSignIn.SignList[currentSignInSel][allSignIn.countInList[currentSignInSel]-1];
+							signInTemp2 = allSignIn.SignList[currentIndexSel][allSignIn.countInList[currentIndexSel]-1];
 
 					//直接更新显示数据
 					if(countOfSignIn_inRange==0){
@@ -556,19 +569,25 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 						{
 							range=7;
 						}
+
+						//由currentSignInSel 得到当前具体的签到名，再得到其对应的在 allSignIn.SignList 的第一个维度的位置
+						SendMessage(hSignInListBox,LB_GETTEXT,currentSignInSel,(LPARAM)szBuffer);
+						for(i=0;i<allSignIn.countOfItem;i++)
+							if(lstrcmp(szBuffer,allSignIn.SignList[i][0].name)==0)currentIndexSel=i;
+
 						//遍历当前所有所选项的的签到项
-						for(i=0;i<allSignIn.countInList[currentSignInSel] ;i++)
+						for(i=0;i<allSignIn.countInList[currentIndexSel] ;i++)
 						{
 							//如果签到项在时间范围内，进行记录
-							if(DaysBetween(allSignIn.SignList[currentSignInSel][i],SignInTemp)<=range)
+							if(DaysBetween(allSignIn.SignList[currentIndexSel][i],SignInTemp)<=range)
 							{
 								countOfSignIn_inRange+=1;
 								if(countOfSignIn_inRange==1)//记录该范围内第一个签到项
-									signInTemp1=allSignIn.SignList[currentSignInSel][i];
+									signInTemp1=allSignIn.SignList[currentIndexSel][i];
 							}
 						}
 						if(countOfSignIn_inRange!=0)//如果有记录签到项记录最后一个
-							signInTemp2 = allSignIn.SignList[currentSignInSel][allSignIn.countInList[currentSignInSel]-1];
+							signInTemp2 = allSignIn.SignList[currentIndexSel][allSignIn.countInList[currentIndexSel]-1];
 
 						//在sel_RangeListBox2已经选择的基础上
 						if(sel_LongOrShotListBox==-1)//如果sel_LongOrShotListBox还未选择
@@ -581,26 +600,26 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 							minIntervalDay = 2147483647;
 							maxIntervalDay = -1;
 							//遍历当前所有所选项的的签到项
-							for(i=0;i<allSignIn.countInList[currentSignInSel] ;i++)
+							for(i=0;i<allSignIn.countInList[currentIndexSel] ;i++)
 							{
 								//如果签到项在时间范围内
-								if(DaysBetween(allSignIn.SignList[currentSignInSel][i],SignInTemp)<=range)
+								if(DaysBetween(allSignIn.SignList[currentIndexSel][i],SignInTemp)<=range)
 								{
 									//如果当前项i 与i+timeInputted-1 项都存在的话，求间隔并比较
-									if(i+timeInputted-1<allSignIn.countInList[currentSignInSel])
+									if(i+timeInputted-1<allSignIn.countInList[currentIndexSel])
 									{
 										//当sel_LongOrShotListBox =0 求最长N次间隔
 										if(sel_LongOrShotListBox==0)
 										{
 											maxIntervalDay =max(maxIntervalDay,DaysBetween(
-										    	allSignIn.SignList[currentSignInSel][i],
-												allSignIn.SignList[currentSignInSel][i+timeInputted-1]));
+										    	allSignIn.SignList[currentIndexSel][i],
+												allSignIn.SignList[currentIndexSel][i+timeInputted-1]));
 										}
 										else 	//当sel_LongOrShotListBox =1 求最短N次间隔
 										{
 											minIntervalDay =min(minIntervalDay,DaysBetween(
-										    	allSignIn.SignList[currentSignInSel][i],
-												allSignIn.SignList[currentSignInSel][i+timeInputted-1]));
+										    	allSignIn.SignList[currentIndexSel][i],
+												allSignIn.SignList[currentIndexSel][i+timeInputted-1]));
 										}
 									}
 								}//end of <if //如果签到项在时间范围内> 
