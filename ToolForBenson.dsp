@@ -103,6 +103,10 @@ SOURCE=.\Entry.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\MainModuleManagerWndProc.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\MyDefine.cpp
 
 !IF  "$(CFG)" == "ToolForBenson - Win32 Release"
@@ -114,15 +118,27 @@ SOURCE=.\MyDefine.cpp
 !ENDIF 
 
 # End Source File
+# Begin Source File
 
+SOURCE=.\SecondModuleManagerWndProc.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\SignInModuleSubWindow.cpp
+# End Source File
 # End Group
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=.\GlobleManager.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\MyDefine.h
 # End Source File
+
 # End Group
 # Begin Group "Resource Files"
 

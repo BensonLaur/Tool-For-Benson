@@ -6,24 +6,31 @@
 --------------------Configuration: ToolForBenson - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\Users\ADMINI~1\AppData\Local\Temp\RSPB5E2.tmp" with contents
+Creating temporary file "C:\Users\ADMINI~1\AppData\Local\Temp\RSP76EB.tmp" with contents
 [
-/nologo /MLd /W2 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /FR"Debug/" /Fp"Debug/ToolForBenson.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
-"G:\桌面\专业软件\VC projects\ToolForBenson\Entry.cpp"
+/nologo /MLd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /FR"Debug/" /Fp"Debug/ToolForBenson.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
+"G:\桌面\专业软件\VC projects\ToolForBenson\MainModuleManagerWndProc.cpp"
+"G:\桌面\专业软件\VC projects\ToolForBenson\SignInModuleSubWindow.cpp"
 ]
-Creating command line "cl.exe @C:\Users\ADMINI~1\AppData\Local\Temp\RSPB5E2.tmp" 
-Creating temporary file "C:\Users\ADMINI~1\AppData\Local\Temp\RSPB5E3.tmp" with contents
+Creating command line "cl.exe @C:\Users\ADMINI~1\AppData\Local\Temp\RSP76EB.tmp" 
+Creating temporary file "C:\Users\ADMINI~1\AppData\Local\Temp\RSP76EC.tmp" with contents
 [
 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /incremental:yes /pdb:"Debug/ToolForBenson.pdb" /debug /machine:I386 /out:"Debug/ToolForBenson.exe" /pdbtype:sept 
 ".\Debug\Entry.obj"
+".\Debug\MainModuleManagerWndProc.obj"
 ".\Debug\MyDefine.obj"
+".\Debug\SecondModuleManagerWndProc.obj"
+".\Debug\SignInModuleSubWindow.obj"
 ]
-Creating command line "link.exe @C:\Users\ADMINI~1\AppData\Local\Temp\RSPB5E3.tmp"
+Creating command line "link.exe @C:\Users\ADMINI~1\AppData\Local\Temp\RSP76EC.tmp"
 <h3>Output Window</h3>
 Compiling...
-Entry.cpp
+MainModuleManagerWndProc.cpp
+SignInModuleSubWindow.cpp
 Linking...
-LINK : warning LNK4076: invalid incremental status file "Debug/ToolForBenson.ilk"; linking nonincrementally
+Creating command line "bscmake.exe /nologo /o"Debug/ToolForBenson.bsc"  ".\Debug\Entry.sbr" ".\Debug\MainModuleManagerWndProc.sbr" ".\Debug\MyDefine.sbr" ".\Debug\SecondModuleManagerWndProc.sbr" ".\Debug\SignInModuleSubWindow.sbr""
+Creating browse info file...
+<h3>Output Window</h3>
 
 
 
