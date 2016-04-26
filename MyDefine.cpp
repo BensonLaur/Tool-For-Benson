@@ -1,7 +1,13 @@
+/******************************************************************
+	文件名：MyDefine.cpp
+
+	文件描述：实现 MyDefine.h 中 除消息处理函数之外的函数
+
+*********************************************************************/
+
 #include <windows.h>
 #include "MyDefine.h"
 #include <stdio.h>
-
 
 /*********  函数定义  *********/
 
@@ -277,20 +283,5 @@ int DaysBetween(SignIn &former,SignIn &latter)
 	DaysFromBase2 +=  latter.day;
 
 	return DaysFromBase2-DaysFromBase1;
-}
-
-
-//模块管理器 的 底层静态“静态窗口” 使用的消息处理函数 (主模块管理器)
-LRESULT CALLBACK ModuleManagerProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	PMODULEMANAGER pMM = GetPModuleManagerByStaticHWND(hwnd);
-	CheckNullErrorAndQuit(pMM,6,TEXT("Can't Get ModuleManager By HWND in ModuleManagerProc()!"));
-	RECT rect;
-	switch(message)
-	{
-
-	}
-
-	return  CallWindowProc (pMM->OldModuleManager, hwnd, message, wParam,lParam) ;
 }
 

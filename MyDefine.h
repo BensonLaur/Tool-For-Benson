@@ -1,7 +1,7 @@
 /******************************************************************
-文件名：MyDefine.h
+	文件名：MyDefine.h
 
-文件描述：
+	文件描述：定义自定义的常量和结构体，以及声明主要的消息处理函数
 
 *********************************************************************/
 #ifndef MY_DEFINE_TOOL_FOR_BENSON
@@ -91,6 +91,8 @@ int * countInList;
 /*********  内定变量声明  *********/
 //定义程序全局静态变量
 
+//用于函数AddNewModule中，添加新的“按钮”到 静态的“按钮窗口”时，创建窗口使用的 运行实例参数
+//在这里程序没有对其初始化，但按钮窗口还是能创建
 static HINSTANCE hInstance2;
 
 
@@ -98,17 +100,16 @@ static HINSTANCE hInstance2;
 static MapList ManagerMapList;
 static MapList ModuleMapList;
 
-
+//用于全局经常会用到的wsprintf等函数，主要用于暂存字符串
 static TCHAR szBuffer[256];
 static TCHAR szBuffer2[256];
 
-static WNDPROC oldEditProc[2]; //有新的编辑控件要使用时，需要重新指定下标
-
-//定义用于计算签到间隔的 数组
+//定义用于计算签到间隔的 数组，用于 签到模块使用的函数 DaysBetween 
 static int DAY_IN_MONTH[2][12] = {
 	{31,28,31,30,31,30,31,31,30,31,30,31},
 	{31,29,31,30,31,30,31,31,30,31,30,31}
 };
+
 
 /*********  函数定义  *********/
 
@@ -184,7 +185,7 @@ LRESULT CALLBACK ModuleButtonWindowProc2 (HWND hwnd, UINT message, WPARAM wParam
 //每个新模块的 静态“内容窗口”使用的消息处理函数  (第二个模块管理器)
 LRESULT CALLBACK ModuleContentWindowProc2 (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-//本程序所有出现的Edit控件的新的消息处理函数
+//第一个模块中所有出现的Edit控件的新的消息处理函数
 LRESULT CALLBACK newEditProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 
