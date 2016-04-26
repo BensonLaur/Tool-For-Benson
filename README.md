@@ -7,7 +7,7 @@ This is a application design for myself ,which implements the functions I want.
 The functions include sign in and Favorites so far. And the functions have been building......
 
 ###Requiment:
-This project is ran with VC++ IDE,althouth the API I use is traditional windows API, which
+This project is ran with VC++6.0 IDE,althouth the API I use is traditional windows API, which
 is what I am learning.
 
 
