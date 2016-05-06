@@ -4,6 +4,7 @@
 	文件描述：整个程序的入口，以及程序主窗口的消息处理函数
 
 *********************************************************************/
+#include <iostream.h>
 #include <windows.h>  
 #include <stdio.h>
 #include "MyDefine.h"
