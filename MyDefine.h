@@ -157,6 +157,7 @@ PMODULEMANAGER GetPModuleManagerByButtonHWND(HWND hwnd);
 PMODULEMANAGER GetPModuleManagerByStaticHWND(HWND hwnd);
 
 /** 签到模块使用的函数 ***/
+bool IsLeapYear(int year);
 int DaysBetween(SignIn &former,SignIn &latter);
 
 

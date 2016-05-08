@@ -1,21 +1,25 @@
 /******************************************************************
 	文件名：SignInModuleSubWindow.cpp
 
-	文件描述：初始化第一个模块的两个子窗口hDlgBaseData 和 hDlgHistogram 以及添加选项窗口 hDlgAddItem
+	文件描述：初始化第一个模块的两个子窗口hDlgBaseData 和 hDlgHistogram, hDlgAdvance 以及添加选项窗口 hDlgAddItem
 
 *********************************************************************/
 #include <windows.h>
+#include <stdio.h>
+#include <TCHAR.H>
 #include <time.h>
 #include "MyDefine.h"
 
 //使用MainModuleManagerWndProc.cpp中定义的全局窗口句柄
 extern HWND hSignInListBox;
-extern HWND hDlgBaseData, hDlgHistogram;
+extern HWND hDlgBaseData, hDlgHistogram, hDlgAdvance;
 
 static HWND hStaticSignRange1,hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
        hRangeListBox2 , hLongOrShotListBox ,hTimesEdit, hStaticWord2,hStaticIntervalDays;
-static HWND hStaticSignRange2,hStaticTime, hStaticMonth , *hStaticTimesNumber, *hStaticMonthNumber,
+static HWND hStaticSignRange2,hStaticTime, hStaticMonth ,
 	   hDefaultYearButton,hStaticYearLabel, hNextYearButton, hLastYearButton;
+static HWND hStaticTip, hListListBox, hDeleteSignInButton, hAddSignInEdit,hAddSignInButton;
+
 //添加窗口的句柄
 static HWND hDlgAddItem ,hStaticAddTipLabel,hEditAddNewItem,hConfirmButton_AddSignIn,hCancelButton_AddSignIn;
 
@@ -25,15 +29,26 @@ extern TCHAR szSubWindowClassName[];
 
 //使用全局变量allSignIn (存储当前所有签到的自定义的结构体，在MainModuleManagerWndProc.cpp定义和初始化)
 extern AllSignIn allSignIn;
+extern pSignIn pSignInListTemp;  //程序启动后文件读取后关闭，签到数据的更改缓冲于此，软件关闭时才更新写入
+extern int countOfSignIn_All;
+
 //使用全局变量currentSignInSel(指出当前hSignInListBox所选，在MainModuleManagerWndProc.cpp定义和初始化)
 extern int currentSignInSel;
 
+//使用全局变量DAY_IN_MONTH (储存闰年平年的月份信息，在"MyDefine.h"中定义)
+extern int DAY_IN_MONTH[2][12];
+
 //用于储存旧的Edit控件的消息处理函数
-static WNDPROC oldEditProc[2]; //有新的编辑控件要使用时，需要重新指定下标
+static WNDPROC oldEditProc[3]; //有新的编辑控件要使用时，需要重新指定下标
 //临时的储存签到的静态变量
 static SignIn SignInTemp;	
 
-//初始化第一个模块的两个子窗口hDlgBaseData 和 hDlgHistogram
+//检查字符串日期的合法性，详见实现说明
+int checkValidate(TCHAR * string, SignIn & signInTemp,int currentIndexSel);
+//比较两个签到项的大小关系
+int cmpSignIn(SignIn & s1,SignIn & s2);
+
+//初始化第一个模块的三个子窗口hDlgBaseData 和 hDlgHistogram,hDlgAdvance
 void InitializeSubWindow(HWND hwnd)
 {
 		//签到统计窗口的创建
@@ -41,7 +56,10 @@ void InitializeSubWindow(HWND hwnd)
 									200,100,400,300,
 									hwnd, NULL, (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
 		hDlgHistogram = CreateWindow(szSubWindowClassName,TEXT("柱状图"),WS_POPUP|WS_OVERLAPPEDWINDOW,
-									230,130,400,300,
+									200,400,400,300,
+									hwnd, NULL, (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
+		hDlgAdvance = CreateWindow(szSubWindowClassName,TEXT("高级操作"),WS_POPUP|WS_OVERLAPPEDWINDOW,
+									600,100,400,325,
 									hwnd, NULL, (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
 
 		//统计窗口"基本数据窗口"的绘制
@@ -100,7 +118,6 @@ void InitializeSubWindow(HWND hwnd)
 		hStaticMonth = CreateWindow(TEXT("static"),TEXT("月份"),WS_CHILD|WS_VISIBLE|SS_LEFT,
 									345,170,40,30,
 									hDlgHistogram, (HMENU)2, (HINSTANCE)GetWindowLong(hDlgBaseData,GWL_HINSTANCE),NULL);
-		//	 *hStaticTimesNumber, *hStaticMonthNumber
 
 		hDefaultYearButton = CreateWindow(TEXT("button"),TEXT("默认年份"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,
 									20,220,80,30,
@@ -117,6 +134,28 @@ void InitializeSubWindow(HWND hwnd)
 		hNextYearButton = CreateWindow(TEXT("button"),TEXT("下一年"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,
 									260,220,60,30,
 									hDlgHistogram, (HMENU)7, (HINSTANCE)GetWindowLong(hDlgHistogram,GWL_HINSTANCE),NULL);
+
+		//“高级设置”窗口的绘制
+		
+		hStaticTip = CreateWindow(TEXT("static"),TEXT("显示当前签到数量"),WS_CHILD|WS_VISIBLE|SS_LEFT,
+									5,5,400,30,
+									hDlgAdvance, (HMENU)1, (HINSTANCE)GetWindowLong(hDlgAdvance,GWL_HINSTANCE),NULL);
+		hListListBox = CreateWindow(TEXT("listbox"),NULL,WS_CHILD|WS_VISIBLE|LBS_STANDARD_NO_SORT,
+									5,40,250,250,
+									hDlgAdvance, (HMENU)2, (HINSTANCE)GetWindowLong(hDlgAdvance,GWL_HINSTANCE),NULL);
+		hDeleteSignInButton = CreateWindow(TEXT("button"),TEXT("删除所选签到"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,
+									260,40,120,30,
+									hDlgAdvance, (HMENU)3, (HINSTANCE)GetWindowLong(hDlgAdvance,GWL_HINSTANCE),NULL); 
+		
+		hAddSignInEdit = CreateWindow(TEXT("edit"),NULL,WS_CHILD|WS_VISIBLE|WS_BORDER|ES_LEFT,
+									260,280-70,120,26,
+									hDlgAdvance, (HMENU)4, (HINSTANCE)GetWindowLong(hDlgAdvance,GWL_HINSTANCE),NULL);
+		oldEditProc[2] = (WNDPROC)SetWindowLong(hAddSignInEdit,GWL_WNDPROC,(LONG)newEditProc);
+
+									
+		hAddSignInButton = CreateWindow(TEXT("button"),TEXT("补签"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,
+									300,280-35,80,30,
+									hDlgAdvance, (HMENU)5, (HINSTANCE)GetWindowLong(hDlgAdvance,GWL_HINSTANCE),NULL); 
 }
 
 //初始化第一个模块的 hDlgAddItem
@@ -153,7 +192,7 @@ void InitializeAddItemWindow(HWND hwnd,POINT leftTopPoint,int cyChar)
 }
 
 /*****************************************************************
-*	两个子窗口 hDlgBaseData 和 hDlgHistogram 的消息处理函数
+*	两个子窗口 hDlgBaseData 和 hDlgHistogram ,hDlgAdvance的消息处理函数
 *   以及 新添签到的确认窗口 hDlgAddItem 的消息处理函数
 ******************************************************************/
 
@@ -166,9 +205,12 @@ LRESULT CALLBACK SubWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 				monthCountArray[12],yearToShow,defaultYearToShow,cYearInRecord;
 	static int i,j,timeInputted=2,countOfSignIn_inRange,range,minIntervalDay=-1,maxIntervalDay=-1,flagForEdit;
     static int sel_RangeListBox1=-1, sel_RangeListBox2=-1, sel_LongOrShotListBox=-1,currentIndexSel;
+	static int sel_ListListBox,newInsertIndex;
 
 	SignIn signInTemp1,signInTemp2;
-	
+	int checkResult;
+	bool haveInsert;
+
 	struct tm *pTime;
 	time_t secondTime;
 
@@ -256,19 +298,47 @@ LRESULT CALLBACK SubWndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 			//记录当前有签到记录的年数
 			cYearInRecord= defaultYearToShow - allSignIn.SignList[currentIndexSel][0].year+1;
 
+			//当年份为0，说明没有任何签到项存在
+			if(allSignIn.SignList[currentIndexSel][0].year==0)
+				cYearInRecord=0;
+
 			//更新显示年份的static标签
 			wsprintf(szBuffer,TEXT("%d"),yearToShow);
 			SetWindowText(hStaticYearLabel,szBuffer);
 
 			//根据情况决定按钮的启用状态
 			EnableWindow(hNextYearButton,FALSE);
-			if(cYearInRecord==1){
+			if(cYearInRecord==1 || cYearInRecord==0){
 				EnableWindow(hLastYearButton,FALSE);
 			}
-			else{//由于上一次的签到项状态不知，有可能是禁用状态，所以必须启用
+			else{//每次打开窗口来到次，由于上一次的hLastYearButton状态不知，有可能是禁用状态，所以必须明确地在这启用
 				EnableWindow(hLastYearButton,TRUE);
 			}
 		 }
+		else if(hwnd==hDlgAdvance)
+		{
+			//清空listbox
+			SendMessage(hListListBox,LB_RESETCONTENT,0,0);
+
+			//由currentSignInSel 得到当前具体的签到名，再得到其对应的在 allSignIn.SignList 的第一个维度的位置
+			SendMessage(hSignInListBox,LB_GETTEXT,currentSignInSel,(LPARAM)szBuffer);
+			for(i=0;i<allSignIn.countOfItem;i++)
+				if(lstrcmp(szBuffer,allSignIn.SignList[i][0].name)==0)currentIndexSel=i;
+
+			//把所有项添加到listbox中显示
+			for(i=0;i<allSignIn.countInList[currentIndexSel];i++){
+				wsprintf(szBuffer,TEXT("%d-%d-%d"),allSignIn.SignList[currentIndexSel][i].year,
+					allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
+				SendMessage(hListListBox,LB_INSERTSTRING,-1,(LPARAM)szBuffer);
+			}
+
+			//更新提示
+			wsprintf(szBuffer,TEXT("签到项: %s \t\t 签到次数: %d"),allSignIn.SignList[currentIndexSel][0].name,
+				allSignIn.countInList[currentIndexSel]);
+			SetWindowText(hStaticTip,szBuffer);
+
+			sel_ListListBox = LB_ERR;
+		}
 		break;
 	case WM_PAINT:
 			hdc = BeginPaint (hwnd, &ps) ;
@@ -606,7 +676,6 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 								EnableWindow(hNextYearButton,FALSE);
 						}
 
-						
 					//更新显示年份的static标签
 					wsprintf(szBuffer,TEXT("%d"),yearToShow);
 					SetWindowText(hStaticYearLabel,szBuffer);
@@ -615,6 +684,265 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 
 			}
 
+		}
+
+		/*当窗口是 "高级设置" 对话框窗口时*/
+		else if(hwnd==hDlgAdvance)
+		{
+			switch(LOWORD (wParam))
+			{
+			case 2: // hListListBox
+				if(HIWORD(wParam)==LBN_SELCHANGE)
+					sel_ListListBox = SendMessage((HWND)lParam,LB_GETCURSEL,0,0);
+				
+				printf("HIWORD(wParam)=%d Current Sel:%d\n",HIWORD(wParam),sel_ListListBox);
+				break;
+
+			case 3: //hDeleteSignInButton
+				if(sel_ListListBox ==LB_ERR){
+					MessageBox(hwnd,TEXT("未选中任何签到日期！！！"),TEXT("输入提示"),MB_ICONINFORMATION);
+					break;
+				}
+				else
+				{
+					lstrcpy(signInTemp1.name,allSignIn.SignList[currentIndexSel][sel_ListListBox].name);
+					signInTemp1.year = allSignIn.SignList[currentIndexSel][sel_ListListBox].year;
+					signInTemp1.month = allSignIn.SignList[currentIndexSel][sel_ListListBox].month;
+					signInTemp1.day = allSignIn.SignList[currentIndexSel][sel_ListListBox].day;
+
+					wsprintf(szBuffer,TEXT("即将删除签到项：%d-%d-%d\n\n是否确定？"),signInTemp1.year,signInTemp1.month,signInTemp1.day);
+					//没有作用了的checkResult，来接收返回结果
+					checkResult = MessageBox(hwnd,szBuffer,TEXT("删除确认"),MB_ICONINFORMATION|MB_YESNO);
+
+					//不是肯定回答则返回
+					if(checkResult!=IDYES)
+					{
+						break;
+					}
+					
+					//从allSignIn 中删除被删除的项
+					SignIn	*listUpdated;
+					listUpdated = allSignIn.SignList[currentIndexSel];
+printf("删除： %d ==>",allSignIn.countInList[currentIndexSel]);
+
+					allSignIn.countInList[currentIndexSel] -= 1;
+					allSignIn.SignList[currentIndexSel] = (SignIn *)malloc(sizeof(SignIn)*allSignIn.countInList[currentIndexSel]);
+					
+printf("%d \n",allSignIn.countInList[currentIndexSel]);
+
+printf("new SignList:%d\n",allSignIn.SignList[currentIndexSel]);
+
+					//i指向新的allSignIn.SignList[currentIndexSel]
+					//j指向旧的待删除的listUpdated
+					for(j=0,i=0; j<allSignIn.countInList[currentIndexSel]+1 ;j++)
+					{
+						if(j==sel_ListListBox)
+							continue;
+
+						lstrcpy(allSignIn.SignList[currentIndexSel][i].name,listUpdated[j].name);
+						allSignIn.SignList[currentIndexSel][i].year = listUpdated[j].year;
+						allSignIn.SignList[currentIndexSel][i].month = listUpdated[j].month;
+						allSignIn.SignList[currentIndexSel][i].day = listUpdated[j].day;
+printf("%d-%d-%d\n",allSignIn.SignList[currentIndexSel][i].year,allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
+
+						i++;
+					}
+
+printf("for after:\n");
+for(i=0;i<allSignIn.countInList[currentIndexSel];i++)
+printf("%d-%d-%d\n",allSignIn.SignList[currentIndexSel][i].year,allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
+
+printf("\n");
+					free(listUpdated);
+
+					//根据allSignIn重新分配
+							
+					countOfSignIn_All=0;
+					for(i=0;i<allSignIn.countOfItem;i++) countOfSignIn_All += allSignIn.countInList[i];
+
+printf("new :%d\n",countOfSignIn_All);
+					pSignInListTemp = (SignIn *)realloc(pSignInListTemp,sizeof(SignIn)*countOfSignIn_All);
+							
+					checkResult = 0;	//没有作用了的checkResult，来接收返回结果
+					for(i=0; i<allSignIn.countOfItem ; i++)
+					{
+						for(j=0; j<allSignIn.countInList[i] ; j++)
+						{
+							lstrcpy(pSignInListTemp[checkResult].name,allSignIn.SignList[i][j].name);
+							pSignInListTemp[checkResult].year = allSignIn.SignList[i][j].year;
+							pSignInListTemp[checkResult].month = allSignIn.SignList[i][j].month;
+							pSignInListTemp[checkResult].day = allSignIn.SignList[i][j].day;
+
+							checkResult+=1;
+						}
+					}	
+
+					
+					//更新ListListBox 和 顶部提示
+					SendMessage (hListListBox, LB_DELETESTRING,sel_ListListBox, 0) ;
+					SendMessage (hListListBox, LB_SETCURSEL,-1, 0) ;
+					sel_ListListBox = LB_ERR;
+					wsprintf(szBuffer,TEXT("签到项: %s \t\t 签到次数: %d"),allSignIn.SignList[currentIndexSel][0].name,
+						allSignIn.countInList[currentIndexSel]);
+					SetWindowText(hStaticTip,szBuffer);
+
+					//提示成功
+					wsprintf(szBuffer2,TEXT("删除成功:%d-%d-%d"),signInTemp1.year,signInTemp1.month,signInTemp1.day);
+					MessageBox(hwnd,szBuffer2,TEXT("删除提示"),MB_ICONINFORMATION);
+
+				}
+				break;
+
+			case 5: //hAddSignInButton
+				GetWindowText(hAddSignInEdit,szBuffer,1+SendMessage(hAddSignInEdit,EM_LINELENGTH,-1,0));
+				
+				checkResult = checkValidate(szBuffer,signInTemp1,currentIndexSel);
+
+				if(checkResult<0)
+				{
+					if(checkResult==-1)//格式不正确
+						wsprintf(szBuffer2,TEXT("无效的日期输入：%s\n\n正确格式为：2XXX-(X)X-(X)X ! (X为数字)"),szBuffer);
+					else if(checkResult==-2)//日历上不存在该日期
+						wsprintf(szBuffer2,TEXT("无效的日期输入：%s\n\n日历上无该日期!"),szBuffer);
+					else if(checkResult==-3)//格式正确，但是时期超前
+						wsprintf(szBuffer2,TEXT("无效的日期输入：%s \n\n必须小于等于当前日期:%d-%d-%d"),
+							szBuffer,signInTemp1.year,signInTemp1.month,signInTemp1.day);
+					else if(checkResult==-4)//格式正确，但是重复了
+						wsprintf(szBuffer2,TEXT("签到重复了：%s\n\n"),szBuffer);
+
+					MessageBox(hwnd,szBuffer2,TEXT("输入提示"),MB_ICONINFORMATION);
+				}
+				else
+				{
+					wsprintf(szBuffer,TEXT("即将添加签到项：%d-%d-%d\n\n是否确定？"),signInTemp1.year,signInTemp1.month,signInTemp1.day);
+					//没有作用了的checkResult，来接收返回结果
+					checkResult = MessageBox(hwnd,szBuffer,TEXT("补签确认"),MB_ICONINFORMATION|MB_YESNO);
+
+					//不是肯定回答则返回
+					if(checkResult!=IDYES)
+					{
+						break;
+					}
+printf("\nBefor:!\n");;
+for(i=0;i<allSignIn.countInList[currentIndexSel];i++)
+printf("%d-%d-%d\n ",allSignIn.SignList[currentIndexSel][i].year,allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
+printf("\n");
+					lstrcpy(signInTemp1.name,allSignIn.SignList[currentIndexSel][0].name);
+
+					//插入allSignIn 并且 重新排序
+					if(allSignIn.countInList[currentIndexSel]==0)
+					{
+						allSignIn.countInList[currentIndexSel] += 1;
+						allSignIn.SignList[currentIndexSel][0].year = signInTemp1.year;
+						allSignIn.SignList[currentIndexSel][0].month = signInTemp1.month;
+						allSignIn.SignList[currentIndexSel][0].day = signInTemp1.day;
+						newInsertIndex = 0;
+
+					}else
+					{
+printf("Enter else !\n");
+						SignIn	*listUpdated;
+						listUpdated = allSignIn.SignList[currentIndexSel];
+for(i=0;i<allSignIn.countInList[currentIndexSel];i++)
+printf("updated:%d-%d-%d\n",listUpdated[i].year,listUpdated[i].month,listUpdated[i].day);
+
+						allSignIn.countInList[currentIndexSel] += 1;
+						allSignIn.SignList[currentIndexSel] = (SignIn *)malloc(sizeof(SignIn)*allSignIn.countInList[currentIndexSel]);
+
+						//i指向新的allSignIn.SignList[currentIndexSel]
+						//j指向旧的待添加的listUpdated
+						haveInsert = false;
+printf("count:%d \n",allSignIn.countInList[currentIndexSel]);
+						for(i=0,j=0; i<allSignIn.countInList[currentIndexSel];i++)
+						{
+							//如果第一次出现小于其中签到的情况，把新添加的项复制进去
+							if(cmpSignIn(signInTemp1,listUpdated[j])<0 && !haveInsert)
+							{
+								lstrcpy(allSignIn.SignList[currentIndexSel][i].name,signInTemp1.name);
+								allSignIn.SignList[currentIndexSel][i].year = signInTemp1.year;
+								allSignIn.SignList[currentIndexSel][i].month = signInTemp1.month;
+								allSignIn.SignList[currentIndexSel][i].day = signInTemp1.day;
+								newInsertIndex = i;
+								haveInsert=true;
+printf("new :%d-%d-%d\n ",allSignIn.SignList[currentIndexSel][i].year,allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
+
+								continue; // 指向待更新的listUpdated的j不增加
+							}
+							//将j对应的listUpdate 复制到 i 对应的allSignIn.SignList[currentIndexSel] 中去
+							if(j!=allSignIn.countInList[currentIndexSel]-1)
+							{
+								lstrcpy(allSignIn.SignList[currentIndexSel][i].name,listUpdated[j].name);
+								allSignIn.SignList[currentIndexSel][i].year = listUpdated[j].year;
+								allSignIn.SignList[currentIndexSel][i].month = listUpdated[j].month;
+								allSignIn.SignList[currentIndexSel][i].day = listUpdated[j].day;
+printf("%d-%d-%d\n ",allSignIn.SignList[currentIndexSel][i].year,allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
+							
+							j++;
+							}
+							else
+							{
+printf("insert last!!!!!!!!!\n");
+								lstrcpy(allSignIn.SignList[currentIndexSel][i].name,signInTemp1.name);
+								allSignIn.SignList[currentIndexSel][i].year = signInTemp1.year;
+								allSignIn.SignList[currentIndexSel][i].month = signInTemp1.month;
+								allSignIn.SignList[currentIndexSel][i].day = signInTemp1.day;
+								newInsertIndex = i;
+printf("new :%d-%d-%d\n ",allSignIn.SignList[currentIndexSel][i-1].year,allSignIn.SignList[currentIndexSel][i-1].month,allSignIn.SignList[currentIndexSel][i-1].day);
+
+							}
+
+						}
+
+						free(listUpdated);
+					}
+					
+
+printf("After:!\n");;
+for(i=0;i<allSignIn.countInList[currentIndexSel];i++)
+printf("%d-%d-%d\n ",allSignIn.SignList[currentIndexSel][i].year,allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
+
+					//根据allSignIn重新分配
+printf("\n  countOfSignIn_All :%d ==> ",countOfSignIn_All);
+							
+					countOfSignIn_All=0;
+					for(i=0;i<allSignIn.countOfItem;i++) countOfSignIn_All += allSignIn.countInList[i];
+
+printf("%d\n",countOfSignIn_All);
+					pSignInListTemp = (SignIn *)realloc(pSignInListTemp,sizeof(SignIn)*countOfSignIn_All);
+							
+					checkResult = 0;	//没有作用了的checkResult，来接收返回结果
+					for(i=0; i<allSignIn.countOfItem ; i++)
+					{
+						for(j=0; j<allSignIn.countInList[i] ; j++)
+						{
+							lstrcpy(pSignInListTemp[checkResult].name,allSignIn.SignList[i][j].name);
+							pSignInListTemp[checkResult].year = allSignIn.SignList[i][j].year;
+							pSignInListTemp[checkResult].month = allSignIn.SignList[i][j].month;
+							pSignInListTemp[checkResult].day = allSignIn.SignList[i][j].day;
+
+							checkResult+=1;
+						}
+					}	
+
+					
+					//更新ListListBox 和 顶部提示
+					wsprintf(szBuffer,TEXT("%d-%d-%d"),signInTemp1.year,signInTemp1.month,signInTemp1.day);
+					SendMessage(hListListBox,LB_INSERTSTRING,newInsertIndex, (LPARAM)szBuffer);
+					SendMessage (hListListBox, LB_SETCURSEL,newInsertIndex, 0) ;
+					sel_ListListBox = newInsertIndex;
+
+					wsprintf(szBuffer,TEXT("签到项: %s \t\t 签到次数: %d"),allSignIn.SignList[currentIndexSel][0].name,
+						allSignIn.countInList[currentIndexSel]);
+					SetWindowText(hStaticTip,szBuffer);
+
+
+					//提示成功
+					wsprintf(szBuffer2,TEXT("补签成功:%d-%d-%d"),signInTemp1.year,signInTemp1.month,signInTemp1.day);
+					MessageBox(hwnd,szBuffer2,TEXT("补签提示"),MB_ICONINFORMATION);
+				}
+				break;
+
+			}
 		}
 		
 		/*当窗口是 新添签到 对话框窗口时*/
@@ -747,7 +1075,143 @@ LRESULT CALLBACK newEditProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lPa
 		oldEditProcChosen = oldEditProc[0];
 	else if(hwnd==hEditAddNewItem)
 		oldEditProcChosen = oldEditProc[1];
+	else if(hwnd==hAddSignInEdit)
+		oldEditProcChosen = oldEditProc[2];
+
 
 	return  CallWindowProc (oldEditProcChosen, hwnd, message, wParam,lParam) ;
 }
 
+
+//使用的一些函数
+
+bool isDigit(TCHAR ch)
+{
+	if(ch>='0' && ch <= '9')return true;
+	else return false;
+}
+
+//检查字符串的格式是否合法，时间是否合法，时间是否重复
+//return 1 表示合法，不重复			 signInTemp 返回 格式化后的签到
+//return -1 格式不正确				 signInTemp 不返回信息
+//return -2 伪日期					 signInTemp 不返回信息
+//return -3 格式正确，但是时期超前   signInTemp 返回当前日期的的信息
+//return -4 格式正确，但是重复了	 signInTemp 不返回信息
+int checkValidate(TCHAR * string, SignIn & signInTemp,int currentIndexSel)
+{
+	struct tm *pTime;
+	time_t secondTime;
+	SignIn signInTaday;
+	TCHAR year[5],month[3],day[3];
+	int nYear,nMonth,nDay;
+	int i,j;
+
+	//提取转换为数字信息，格式出错则返回-1
+	for(i=0,j=0; string[i]!='-' ; i++,j++)
+	{
+		year[j]=string[i];
+		if(!isDigit(year[j]))return -1;
+		if(string[i]=='\0')return -1;
+	}
+	year[j]='\0';
+	if(lstrlen(year)!=4)return -1;
+	for(i++,j=0;string[i]!='-'; i++,j++)
+	{
+		month[j]=string[i];
+		if(!isDigit(month[j]))return -1;
+		if(string[i]=='\0')return -1;
+	}
+	month[j]='\0';
+	if(lstrlen(month)!=1 && lstrlen(month)!=2)return -1;
+
+	for(i++,j=0;string[i]!='\0';i++,j++)
+	{
+		day[j]=string[i];
+		if(!isDigit(day[j]))return -1;
+	}
+	day[j]='\0';
+	if(lstrlen(day)!=1 && lstrlen(day)!=2)return -1;
+	
+	nYear =_ttoi(year);
+	nMonth =_ttoi(month); 
+	nDay =_ttoi(day);
+	
+	//检查是否为真实存在的日期，不存在则返回-2
+	if(nMonth<=0 || nMonth>12)
+		return -2;
+	if(nDay<=0 || nDay > DAY_IN_MONTH[IsLeapYear(nYear)][nMonth-1] )
+		return -2;
+
+	//检查日期是否重复,重复返回-4
+
+	//获得当前系统的时间信息
+	secondTime = time(NULL);
+	pTime = localtime(&secondTime);
+	//用签到内容结构体暂存当前时间信息
+	signInTemp.year  = signInTaday.year = 1900 + pTime->tm_year;
+	signInTemp.month =signInTaday.month = pTime->tm_mon+1;
+	signInTemp.day   =signInTaday.day   = pTime->tm_mday;
+	
+
+	for(i=0;i<allSignIn.countInList[currentIndexSel];i++)
+	{
+		if(nYear==allSignIn.SignList[currentIndexSel][i].year &&
+		   nMonth==allSignIn.SignList[currentIndexSel][i].month &&
+		   nDay==allSignIn.SignList[currentIndexSel][i].day )
+		return -4;
+	}
+
+	//检查日期是否超前,超前则返回-3, 不超前返回1
+	if(nYear>signInTaday.year)
+		return -3;
+	
+	if(nYear<signInTaday.year)
+	{
+		signInTemp.year  =nYear;
+		signInTemp.month =nMonth;
+		signInTemp.day   =nDay;
+		return 1;
+	}
+	else// nYear==signInTaday.year
+	{
+		if(nMonth>signInTaday.month)
+			return -3;
+		if(nMonth<signInTaday.month)
+		{
+			signInTemp.year  =nYear;
+			signInTemp.month =nMonth;
+			signInTemp.day   =nDay;
+			return 1;
+		}
+		else// nMonth==signInTaday.month
+		{
+			if(nDay>signInTaday.day)
+				return -3;
+			else //nDay<signInTaday.day
+			{
+				signInTemp.year  =nYear;
+				signInTemp.month =nMonth;
+				signInTemp.day   =nDay;
+				return 1;
+			}
+		}
+	}
+
+}
+
+//比较两个不等的签到项的大小关系
+int cmpSignIn(SignIn & s1,SignIn & s2)
+{
+	if(s1.year < s2.year) return -1;
+	else if(s1.year > s2.year)return 1;
+	else 
+	{
+		if(s1.month<s2.month)return -1;
+		else if(s1.month > s2.month)return 1;
+		else
+		{
+			if(s1.day < s2.day) return -1;
+			else return 1;
+		}
+	}
+}

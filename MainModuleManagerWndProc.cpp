@@ -27,8 +27,8 @@ static int idOfCurrentAppModule;
 HWND hSignInListBox;
 static HWND hAddItemButton , hDeleteItemButton ,  
 	   hStaticCurrent , hStaticCurrentItem , 
-	   hSignInButton , hStatisticsGroupBox , hBaseDataButton , hHistogramButton ;
-HWND hDlgBaseData , hDlgHistogram;
+	   hSignInButton , hStatisticsGroupBox , hBaseDataButton , hHistogramButton ,hAdvanceButton;
+HWND hDlgBaseData , hDlgHistogram , hDlgAdvance;
 
 //第二个模块 “收藏” 的具体的句柄在SecondModuleManagerWndProc.cpp 中定义
 
@@ -36,11 +36,11 @@ HWND hDlgBaseData , hDlgHistogram;
 
 /*********   在此定义各个模块所用到的【数据】  *************************************/
 //第一个模块 “签到”的数据
-AllSignIn allSignIn; 
+AllSignIn allSignIn;			 //用来储存签到数据的更改，创建新签到项时，新签到项不写入pSignInListTemp，签到了之后才写入
 int currentSignInSel;
 static FILE *pSignInFile;
-static pSignIn pSignInListTemp;  //程序启动后文件读取后关闭，签到数据的更改缓冲于此，软件关闭时才更新写入
-static int countOfSignIn_All;
+pSignIn pSignInListTemp;  //程序启动后文件读取后关闭，签到数据的更改缓冲于此，软件关闭时才更新写入
+int countOfSignIn_All;
 static TCHAR filePath[256];
 
 static struct tm *pTime;
@@ -361,10 +361,12 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 
 	static int cxWindow,cyWindow,cxChar,cyChar,i,j,cxScreen,cyScreen;
 	//第一个模块“签到的变量”
-	int dlgAnswer;
+	int dlgAnswer,currentIndexSel;
 	static SignIn SignInTemp;
 	POINT leftTopPoint;
 	RECT rect;
+	AllSignIn tempAllSignIn;
+	bool updateTemp;
 
 
 	//可以在此消息处理函数中初始化各个模块的内容
@@ -412,6 +414,10 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 				hHistogramButton =CreateWindow(TEXT("button"),TEXT("柱状图"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,
 									255,155,70,30,
 									hwnd, (HMENU)10, (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
+				
+				hAdvanceButton =CreateWindow(TEXT("button"),TEXT("高级设置"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,
+									0,0,0,0,
+									hwnd, (HMENU)11, (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
 
 				//在SignInModuleSubWindow.cpp 中 初始化第一个模块的两个子窗口hDlgBaseData 和 hDlgHistogram
 				InitializeSubWindow(hwnd);
@@ -545,21 +551,6 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 
 				currentSignInSel=-1;
 
-		//printf("%s",filePath);
-/*
-typedef struct _AllSignIn{
-int countOfItem;
-SignIn ** SignInList;  //二维的签到记录，第一维的个数为countOfItem ，第二维的个数分别存放于countList
-int * countList;
-} AllSignIn;
-
-typedef struct _SignIn{
-TCHAR name[256];
-int year;
-int month;
-int day;
-} SignIn,*PSignIn;
-  */
 		 } 
 		 else if( id == 1 )//初始化第二个模块内容
 		{
@@ -592,6 +583,7 @@ int day;
 			
 			MoveWindow(hBaseDataButton,500+20,20+4*cyChar+40+50,160,2*cyChar,TRUE);
 			MoveWindow(hHistogramButton,500+20,20+6*cyChar+40+70,160,2*cyChar,TRUE);
+			MoveWindow(hAdvanceButton,500+20,20+8*cyChar+40+90,160,2*cyChar,TRUE);
 
 		}
 		else if(id == 1)
@@ -650,8 +642,79 @@ int day;
 					
 				break;
 			case 3: //hDeleteItemButton:
+				if(currentSignInSel==-1)
+				{
+					MessageBox(hwnd,TEXT("未选择签到项"),TEXT("删除签到提示"),MB_ICONINFORMATION);
+				}
+				else{
+					//由currentSignInSel 得到当前具体的签到名，再得到其对应的在 allSignIn.SignList 的第一个维度的位置
+					SendMessage(hSignInListBox,LB_GETTEXT,currentSignInSel,(LPARAM)szBuffer);
+					for(i=0;i<allSignIn.countOfItem;i++)
+						if(lstrcmp(szBuffer,allSignIn.SignList[i][0].name)==0)currentIndexSel=i;
 
+					wsprintf(szBuffer2,TEXT("是否确认【删除】签到项： %s ？\n\n该签到项有【%d】条记录"),
+						szBuffer,allSignIn.countInList[currentIndexSel]);
+					dlgAnswer = MessageBox(hwnd,szBuffer2,TEXT("删除签到提示"),MB_ICONINFORMATION|MB_YESNO);
+
+					//确认要删除的话
+					if(dlgAnswer==IDYES){
+
+						if(allSignIn.countInList[currentIndexSel]==0) updateTemp = false;
+						else updateTemp = true;
+
+						//更新allSignIn
+						tempAllSignIn = allSignIn;
+						allSignIn.countOfItem -= 1;
+						allSignIn.countInList = (int*)malloc(sizeof(int)*allSignIn.countOfItem);
+						allSignIn.SignList = (SignIn **)malloc(sizeof(SignIn*)*allSignIn.countOfItem);
+						for(i=0,j=0;i<tempAllSignIn.countOfItem;i++)
+						{
+							if(i==currentIndexSel){free(tempAllSignIn.SignList[i]);continue;}//释放选中的项的内容
+							allSignIn.SignList[j]=tempAllSignIn.SignList[i];//其他转移回allSignIn
+						    allSignIn.countInList[j]=tempAllSignIn.countInList[i];
+							j++;
+						}
+
+						if(updateTemp)//如果需要更新pSignInListTemp
+						{
+							printf("需要重新分配!\n");
+							//重新分配pSignInListTemp
+							printf("\n  countOfSignIn_All :%d ==> ",countOfSignIn_All);
+							
+							countOfSignIn_All=0;
+							for(i=0;i<allSignIn.countOfItem;i++) countOfSignIn_All += allSignIn.countInList[i];
+
+							printf("%d\n",countOfSignIn_All);
+							pSignInListTemp = (SignIn *)realloc(pSignInListTemp,sizeof(SignIn)*countOfSignIn_All);
+							
+							dlgAnswer = 0;	//把已经没用的 dlgAnswer 拿来作为计数器使用
+							for(i=0; i<allSignIn.countOfItem ; i++)
+							{
+								for(j=0; j<allSignIn.countInList[i] ; j++)
+								{
+									lstrcpy(pSignInListTemp[dlgAnswer].name,allSignIn.SignList[i][j].name);
+									pSignInListTemp[dlgAnswer].year = allSignIn.SignList[i][j].year;
+									pSignInListTemp[dlgAnswer].month = allSignIn.SignList[i][j].month;
+									pSignInListTemp[dlgAnswer].day = allSignIn.SignList[i][j].day;
+
+									dlgAnswer+=1;
+								}
+							}
+						}
+
+for(i=0;i<countOfSignIn_All;i++)
+{
+	printf("n:%s  %d-%d-%d \n",pSignInListTemp[i].name,pSignInListTemp[i].year,pSignInListTemp[i].month,pSignInListTemp[i].day);
+}
+						//更新显示listBox	
+						SendMessage(hSignInListBox,LB_DELETESTRING,currentSignInSel,0);
+						//SendMessage (hSignInListBox, LB_SETCURSEL, -1, 0) ;
+						
+						currentIndexSel = -1;
+					}
+				}
 				break;
+
 			case  6://hSignInButton:
 				if(currentSignInSel==-1)
 				{
@@ -763,6 +826,20 @@ int day;
 				SendMessage(hDlgHistogram,WM_USER+2,0,0);
 
 				ShowWindow(hDlgHistogram,SW_SHOW);
+
+				break;
+			case 11: //hAdvanceButton:
+				
+				if(currentSignInSel==-1)
+				{
+					MessageBox(hwnd,TEXT("未选择签到项！\n\n请先选择或创建签到项！ :)"),TEXT("统计提示"),MB_ICONINFORMATION);
+					break;
+				}
+				
+				//打开前发送自定义消息，初始化窗口
+				SendMessage(hDlgAdvance,WM_USER+2,0,0);
+
+				ShowWindow(hDlgAdvance,SW_SHOW);
 
 				break;
 			}

@@ -253,7 +253,7 @@ PMODULEMANAGER GetPModuleManagerByStaticHWND(HWND hwnd){
 /** 签到模块使用的函数 ***/
 bool IsLeapYear(int year)
 {
-	return ((year%4==0 && year%100!=0) || year%400==0);
+	return ((year%4==0 && year%100!=0) || (year%100==0 && year%400!=0));
 }
 //前一个签到必须保证时间前于后一个签到
 int DaysBetween(SignIn &former,SignIn &latter)
