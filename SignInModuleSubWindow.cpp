@@ -723,14 +723,9 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 					//从allSignIn 中删除被删除的项
 					SignIn	*listUpdated;
 					listUpdated = allSignIn.SignList[currentIndexSel];
-printf("删除： %d ==>",allSignIn.countInList[currentIndexSel]);
 
 					allSignIn.countInList[currentIndexSel] -= 1;
 					allSignIn.SignList[currentIndexSel] = (SignIn *)malloc(sizeof(SignIn)*allSignIn.countInList[currentIndexSel]);
-					
-printf("%d \n",allSignIn.countInList[currentIndexSel]);
-
-printf("new SignList:%d\n",allSignIn.SignList[currentIndexSel]);
 
 					//i指向新的allSignIn.SignList[currentIndexSel]
 					//j指向旧的待删除的listUpdated
@@ -743,16 +738,10 @@ printf("new SignList:%d\n",allSignIn.SignList[currentIndexSel]);
 						allSignIn.SignList[currentIndexSel][i].year = listUpdated[j].year;
 						allSignIn.SignList[currentIndexSel][i].month = listUpdated[j].month;
 						allSignIn.SignList[currentIndexSel][i].day = listUpdated[j].day;
-printf("%d-%d-%d\n",allSignIn.SignList[currentIndexSel][i].year,allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
 
 						i++;
 					}
 
-printf("for after:\n");
-for(i=0;i<allSignIn.countInList[currentIndexSel];i++)
-printf("%d-%d-%d\n",allSignIn.SignList[currentIndexSel][i].year,allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
-
-printf("\n");
 					free(listUpdated);
 
 					//根据allSignIn重新分配
@@ -760,7 +749,6 @@ printf("\n");
 					countOfSignIn_All=0;
 					for(i=0;i<allSignIn.countOfItem;i++) countOfSignIn_All += allSignIn.countInList[i];
 
-printf("new :%d\n",countOfSignIn_All);
 					pSignInListTemp = (SignIn *)realloc(pSignInListTemp,sizeof(SignIn)*countOfSignIn_All);
 							
 					checkResult = 0;	//没有作用了的checkResult，来接收返回结果
@@ -823,10 +811,7 @@ printf("new :%d\n",countOfSignIn_All);
 					{
 						break;
 					}
-printf("\nBefor:!\n");;
-for(i=0;i<allSignIn.countInList[currentIndexSel];i++)
-printf("%d-%d-%d\n ",allSignIn.SignList[currentIndexSel][i].year,allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
-printf("\n");
+
 					lstrcpy(signInTemp1.name,allSignIn.SignList[currentIndexSel][0].name);
 
 					//插入allSignIn 并且 重新排序
@@ -840,11 +825,8 @@ printf("\n");
 
 					}else
 					{
-printf("Enter else !\n");
 						SignIn	*listUpdated;
 						listUpdated = allSignIn.SignList[currentIndexSel];
-for(i=0;i<allSignIn.countInList[currentIndexSel];i++)
-printf("updated:%d-%d-%d\n",listUpdated[i].year,listUpdated[i].month,listUpdated[i].day);
 
 						allSignIn.countInList[currentIndexSel] += 1;
 						allSignIn.SignList[currentIndexSel] = (SignIn *)malloc(sizeof(SignIn)*allSignIn.countInList[currentIndexSel]);
@@ -852,7 +834,6 @@ printf("updated:%d-%d-%d\n",listUpdated[i].year,listUpdated[i].month,listUpdated
 						//i指向新的allSignIn.SignList[currentIndexSel]
 						//j指向旧的待添加的listUpdated
 						haveInsert = false;
-printf("count:%d \n",allSignIn.countInList[currentIndexSel]);
 						for(i=0,j=0; i<allSignIn.countInList[currentIndexSel];i++)
 						{
 							//如果第一次出现小于其中签到的情况，把新添加的项复制进去
@@ -864,7 +845,6 @@ printf("count:%d \n",allSignIn.countInList[currentIndexSel]);
 								allSignIn.SignList[currentIndexSel][i].day = signInTemp1.day;
 								newInsertIndex = i;
 								haveInsert=true;
-printf("new :%d-%d-%d\n ",allSignIn.SignList[currentIndexSel][i].year,allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
 
 								continue; // 指向待更新的listUpdated的j不增加
 							}
@@ -875,39 +855,26 @@ printf("new :%d-%d-%d\n ",allSignIn.SignList[currentIndexSel][i].year,allSignIn.
 								allSignIn.SignList[currentIndexSel][i].year = listUpdated[j].year;
 								allSignIn.SignList[currentIndexSel][i].month = listUpdated[j].month;
 								allSignIn.SignList[currentIndexSel][i].day = listUpdated[j].day;
-printf("%d-%d-%d\n ",allSignIn.SignList[currentIndexSel][i].year,allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
 							
-							j++;
+								j++;
 							}
 							else
 							{
-printf("insert last!!!!!!!!!\n");
 								lstrcpy(allSignIn.SignList[currentIndexSel][i].name,signInTemp1.name);
 								allSignIn.SignList[currentIndexSel][i].year = signInTemp1.year;
 								allSignIn.SignList[currentIndexSel][i].month = signInTemp1.month;
 								allSignIn.SignList[currentIndexSel][i].day = signInTemp1.day;
 								newInsertIndex = i;
-printf("new :%d-%d-%d\n ",allSignIn.SignList[currentIndexSel][i-1].year,allSignIn.SignList[currentIndexSel][i-1].month,allSignIn.SignList[currentIndexSel][i-1].day);
-
 							}
-
 						}
-
 						free(listUpdated);
 					}
-					
-
-printf("After:!\n");;
-for(i=0;i<allSignIn.countInList[currentIndexSel];i++)
-printf("%d-%d-%d\n ",allSignIn.SignList[currentIndexSel][i].year,allSignIn.SignList[currentIndexSel][i].month,allSignIn.SignList[currentIndexSel][i].day);
 
 					//根据allSignIn重新分配
-printf("\n  countOfSignIn_All :%d ==> ",countOfSignIn_All);
 							
 					countOfSignIn_All=0;
 					for(i=0;i<allSignIn.countOfItem;i++) countOfSignIn_All += allSignIn.countInList[i];
 
-printf("%d\n",countOfSignIn_All);
 					pSignInListTemp = (SignIn *)realloc(pSignInListTemp,sizeof(SignIn)*countOfSignIn_All);
 							
 					checkResult = 0;	//没有作用了的checkResult，来接收返回结果
@@ -1002,18 +969,7 @@ printf("%d\n",countOfSignIn_All);
 					
 					//给父窗口发送关闭消息
 					SendMessage(hDlgAddItem,WM_CLOSE,0,0);
-/*/////////////////////////////////////////////////////////////////////////////
-				printf("countOfSignIn:%d\n",countOfSignIn_All);
-				for(i=0;i<allSignIn.countOfItem;i++)
-				{
-					for(j=0;j<allSignIn.countInList[i];j++)
-					{
-						printf("N:%s %d %d %d\n",allSignIn.SignList[i][j].name,allSignIn.SignList[i][j].year,allSignIn.SignList[i][j].month,
-							allSignIn.SignList[i][j].day);
-					}
-					printf("--\n");
-				}
-				*/
+
 					break;
 				case 4://	hCancelButton_AddSignIn
 					//给父窗口发送关闭消息
