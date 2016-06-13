@@ -7,6 +7,7 @@
 #ifndef GLOBLE_MANAGER_TOOL_FOR_BENSON
 #define GLOBLE_MANAGER_TOOL_FOR_BENSON
 
+#include "resource.h"
 #include "MyDefine.h"
 
 #define COUNT_OF_MODULE sizeof(ModuleName)/sizeof(ModuleName[0])
@@ -38,5 +39,9 @@ ModuleProc moduleProc[COUNT_OF_MODULE_MANAGER];
 MODULEMANAGER ModuleManeger,ModuleManeger2;	 
 HMODULEMANAGER hMM,hMM2;
 
+//用于调用保存消息时，区分是否即将保存后退出程序
+bool quitFlag =false;
+//用于标记签到的内容是否发生改变
+bool isSignInChange = false;
 
 #endif

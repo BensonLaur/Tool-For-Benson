@@ -17,6 +17,12 @@ extern MODULEMANAGER ModuleManeger,ModuleManeger2;
 //使用全局变量szSubWindowClassName[] (子窗口类别名，在GlobleManager.h中定义，在Entry.cpp中初始化)
 extern TCHAR szSubWindowClassName[];	
 
+//使用全局变量 quitFlag (在GlobleManager.h中定义)
+extern bool quitFlag;
+
+//用于标记签到的内容是否发生改变
+extern bool isSignInChange;
+
 //用于在 【第主模块管理器】 中指明当前 按钮选择了那个子模块
 static int idOfCurrentAppModule;
 
@@ -65,6 +71,7 @@ LRESULT CALLBACK ModuleManagerProc (HWND hwnd, UINT message, WPARAM wParam, LPAR
 	//RECT rect;
 	
 	int cxClient,cyClient,cyChar,i;
+	int ret1,ret2;
 
 	switch(message)
 	{
@@ -94,21 +101,36 @@ LRESULT CALLBACK ModuleManagerProc (HWND hwnd, UINT message, WPARAM wParam, LPAR
 
 		break;
 
-	case WM_USER+1: //用于在程序结束时由主窗口的消息处理函数 中 WM_DESTROY 调用
+	case WM_USER+1: //用于在程序结束由主窗口的消息处理函数 中 WM_DESTROY 调用 或者 用户想要主动保存时调用
 		
-		  //在关闭文件之前，先将数据数据重新写入文件
+		  //将数据数据重新写入文件
 		  if((pSignInFile = fopen(filePath,"w+b"))==NULL)
 		  {
 			  wsprintf(szBuffer,TEXT("签到数据无法更新！\n\n原因：\n无法打开文件:%s \n\n请检查其目录是否缺失！"),filePath);
 			  MessageBox(hwnd,szBuffer,TEXT("提示"),MB_ICONERROR);
-			  PostQuitMessage (0) ;
-			  return 0;
+			  return -1;
 		  }
-		  fwrite(&countOfSignIn_All,sizeof(int),1,pSignInFile);
-		  fwrite(pSignInListTemp,sizeof(SignIn),countOfSignIn_All,pSignInFile);
-		  fclose(pSignInFile);
-		  free(pSignInListTemp);
+		  ret1=fwrite(&countOfSignIn_All,sizeof(int),1,pSignInFile);
+		  ret2=fwrite(pSignInListTemp,sizeof(SignIn),countOfSignIn_All,pSignInFile);
+		  if(ret1==0 || ret2==0)
+		  {
+			  wsprintf(szBuffer,TEXT("签到数据无法更新！\n\n原因：\n已经打开文件:%s \n\n但是由于未知原因写入失败！"),filePath);
+			  MessageBox(hwnd,szBuffer,TEXT("提示"),MB_ICONERROR);
+			  return -1;
+		  }
+		  
+		  if(fclose(pSignInFile)==EOF)
+		  {
+			  wsprintf(szBuffer,TEXT("签到数据更新不稳定！\n\n原因：\n已经打开并修改文件:%s \n\n但是未能正常关闭！"),filePath);
+			  MessageBox(hwnd,szBuffer,TEXT("提示"),MB_ICONERROR);
+			  return -1;
+		  }
 
+		  //如果要退出程序了才释放pSignInListTemp
+		  if(quitFlag == true)
+			free(pSignInListTemp);
+			
+		  return 0;
 		break;
 	}
 
@@ -660,7 +682,11 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 					if(dlgAnswer==IDYES){
 
 						if(allSignIn.countInList[currentIndexSel]==0) updateTemp = false;
-						else updateTemp = true;
+						else {
+							updateTemp = true;
+							//在这里只能确定有签到项时置isSignInChange为真，而无法在 上面if语句中 确定之前有没有在别处修改
+							isSignInChange = true;
+						}
 
 						//更新allSignIn
 						tempAllSignIn = allSignIn;
@@ -776,6 +802,9 @@ for(i=0;i<countOfSignIn_All;i++)
 								wsprintf(szBuffer2,TEXT("签到项：%s  %d-%d-%d  签到成功！"),szBuffer,SignInTemp.year,
 									SignInTemp.month,SignInTemp.day);
 								MessageBox(hwnd,szBuffer2,TEXT("签到提示"),MB_ICONINFORMATION);
+
+								//修改全局的“修改标记”
+								isSignInChange = true;
 							}
 						}
 						break;

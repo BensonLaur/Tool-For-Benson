@@ -120,6 +120,10 @@ SOURCE=.\MyDefine.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Resource.rc
+# End Source File
+# Begin Source File
+
 SOURCE=.\SecondModuleManagerWndProc.cpp
 # End Source File
 # Begin Source File
@@ -138,7 +142,10 @@ SOURCE=.\GlobleManager.h
 
 SOURCE=.\MyDefine.h
 # End Source File
+# Begin Source File
 
+SOURCE=.\resource.h
+# End Source File
 # End Group
 # Begin Group "Resource Files"
 

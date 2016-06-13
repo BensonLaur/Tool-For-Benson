@@ -15,6 +15,11 @@
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM) ;
 LRESULT CALLBACK SubWndProc(HWND, UINT, WPARAM, LPARAM);
 
+//使用全局变量 quitFlag (在GlobleManager.h中定义)
+extern bool quitFlag;
+
+//用于标记签到的内容是否发生改变
+extern bool isSignInChange;
 
 /*********************************************************************
 *		主函数入口
@@ -85,13 +90,19 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	 int cxClient,cyClient,i;
+	 int cxClient,cyClient,i,MB_ICON;
+	 HMENU hSignInMenu;
 	 
      switch (message)
      {
      case WM_CREATE:
 			//初始化自定义的句柄映射队列
 			InitializeMapList();
+
+			//初始化菜单
+			hSignInMenu = LoadMenu (((LPCREATESTRUCT)lParam)->hInstance, MAKEINTRESOURCE (IDR_MENU_SIGN_IN)) ;
+			//默认打开时为签到模块的菜单
+			SetMenu(hwnd,hSignInMenu);
 
 			//创建【主模块管理器】 ModuleManager 以及其句柄 hMM
 			
@@ -136,11 +147,61 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			//而hStaticBoard的子窗口hButtonBoard 和hContentBoard的位置 在hStaticBoard 的消息处理函数中设置
 
 		 return 0;
+	 case WM_INITMENUPOPUP:
+		
+		 if(HIWORD (lParam) == 0)//非系统菜单
+		 {
+			if(LOWORD (lParam) == 0)
+			{
+				if(isSignInChange)
+					EnableMenuItem ((HMENU)wParam, IDM_SIGN_IN_SAVE,  MF_ENABLED);
+				else
+					EnableMenuItem ((HMENU)wParam, IDM_SIGN_IN_SAVE,  MF_GRAYED) ;
+			}
 
+		 }
+
+
+		 return 0;
+	 
+	 case WM_COMMAND:
+			//在这里WM_COMMAND只处理来自菜单的消息
+			
+		 switch(LOWORD(wParam))
+		 {
+		 case	IDM_SIGN_IN_BACKUP:
+			break;
+		 case	IDM_SIGN_IN_IMPORT:
+			break;
+		 case	IDM_SIGN_IN_SAVE:
+			 
+		  quitFlag = false;
+		  //将数据数据重新写入文件
+		  //调用第一各模块管理器的 “底层”静态static board 的消息处理函数来实现数据写入
+		  if(SendMessage(ModuleManeger.hStaticBoard,WM_USER+1,0,0)==0)
+		  {
+			wsprintf(szBuffer,TEXT("更新成功！"));
+			MB_ICON = MB_ICONINFORMATION;
+		  }
+		  else
+		  {
+			wsprintf(szBuffer,TEXT("更新出现了问题！"));
+			MB_ICON = MB_ICONERROR;
+		  }
+		  MessageBox(hwnd,szBuffer,TEXT("提示"),MB_ICON);
+
+		  isSignInChange = false;
+
+			break;
+		 }
+
+
+		 return 0;
      case WM_DESTROY:
 		  //释放句柄的内存
 		  FreeMapList();
 			
+		  quitFlag = true;
 		  //在关闭文件之前，先将数据数据重新写入文件
 		  //调用第一各模块管理器的 “底层”静态static board 的消息处理函数来实现数据写入
 		  SendMessage(ModuleManeger.hStaticBoard,WM_USER+1,0,0);

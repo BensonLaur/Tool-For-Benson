@@ -38,6 +38,9 @@ extern int currentSignInSel;
 //使用全局变量DAY_IN_MONTH (储存闰年平年的月份信息，在"MyDefine.h"中定义)
 extern int DAY_IN_MONTH[2][12];
 
+//用于标记签到的内容是否发生改变
+extern bool isSignInChange;
+
 //用于储存旧的Edit控件的消息处理函数
 static WNDPROC oldEditProc[3]; //有新的编辑控件要使用时，需要重新指定下标
 //临时的储存签到的静态变量
@@ -778,6 +781,9 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 					wsprintf(szBuffer2,TEXT("删除成功:%d-%d-%d"),signInTemp1.year,signInTemp1.month,signInTemp1.day);
 					MessageBox(hwnd,szBuffer2,TEXT("删除提示"),MB_ICONINFORMATION);
 
+					//修改全局的“修改标记”
+					isSignInChange = true;
+
 				}
 				break;
 
@@ -906,6 +912,9 @@ static HWND hRangeListBox1 ,hStaticWord1, hStaticTimes , hStaticDaysOnce ,
 					//提示成功
 					wsprintf(szBuffer2,TEXT("补签成功:%d-%d-%d"),signInTemp1.year,signInTemp1.month,signInTemp1.day);
 					MessageBox(hwnd,szBuffer2,TEXT("补签提示"),MB_ICONINFORMATION);
+					
+					//修改全局的“修改标记”
+					isSignInChange = true;
 				}
 				break;
 
