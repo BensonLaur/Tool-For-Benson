@@ -163,7 +163,7 @@ void InitializeAddItemWindow(HWND hwnd,POINT leftTopPoint,int cyChar)
 {
 
 	//创建子窗口，置于刚才得出的新的位置
-	hDlgAddItem = CreateWindow(szSubWindowClassName,TEXT("添加签到项"),WS_OVERLAPPED|WS_SYSMENU|WS_CAPTION|WS_DLGFRAME,
+	hDlgAddItem = CreateWindowEx(WS_EX_DLGMODALFRAME,szSubWindowClassName,TEXT("添加签到项"),WS_OVERLAPPED|WS_SYSMENU|WS_CAPTION|WS_DLGFRAME,
 											leftTopPoint.x,leftTopPoint.y,300,150,
 											hwnd,NULL,(HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);//父窗口为staticContentBoard
 
