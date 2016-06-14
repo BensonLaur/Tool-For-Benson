@@ -111,7 +111,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			moduleProc[0].ContentWindowProc = ModuleContentWindowProc;
 
 			// ModuleManager 里面有 其相应的 hStaticBoard; hButtonBoard; hContentBoard;
-			CreateStaticModuleManergerBoard(hMM,ModuleManeger,moduleProc[0],
+			CreateStaticModuleManergerBoard(hMM,ModuleManager,moduleProc[0],
 				         hwnd,(HMENU)1,(HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE));
 
 			for(i=0; i <COUNT_OF_MODULE ; i++ )
@@ -124,9 +124,9 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			moduleProc[1].ButtonWindowProc = ModuleButtonWindowProc2;
 			moduleProc[1].ContentWindowProc = ModuleContentWindowProc2;
 			
-			CreateStaticModuleManergerBoard(hMM2,ModuleManeger2,moduleProc[1],
-				         ModuleManeger.pToolModule[1].hContentBoard,(HMENU)1, //新的模块管理器的父窗口为第二个模块的子窗口
-						 (HINSTANCE)GetWindowLong(ModuleManeger.pToolModule[1].hContentBoard,GWL_HINSTANCE));
+			CreateStaticModuleManergerBoard(hMM2,ModuleManager2,moduleProc[1],
+				         ModuleManager.pToolModule[1].hContentBoard,(HMENU)1, //新的模块管理器的父窗口为第二个模块的子窗口
+						 (HINSTANCE)GetWindowLong(ModuleManager.pToolModule[1].hContentBoard,GWL_HINSTANCE));
 			
 			for(i=0; i <COUNT_OF_SUB_MODULE ; i++ )
 			   AddNewModule(hMM2,moduleProc[1],CollectionModuleName[i]);
@@ -141,8 +141,8 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			cxClient = LOWORD(lParam);
 			cyClient = HIWORD(lParam);
 			
-			//设置ModuleManeger中底层hStaticBoard的位置
-			MoveWindow(ModuleManeger.hStaticBoard,5,5,cxClient-10,cyClient-10,TRUE);
+			//设置ModuleManager中底层hStaticBoard的位置
+			MoveWindow(ModuleManager.hStaticBoard,5,5,cxClient-10,cyClient-10,TRUE);
 
 			//而hStaticBoard的子窗口hButtonBoard 和hContentBoard的位置 在hStaticBoard 的消息处理函数中设置
 
@@ -178,7 +178,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		  quitFlag = false;
 		  //将数据数据重新写入文件
 		  //调用第一各模块管理器的 “底层”静态static board 的消息处理函数来实现数据写入
-		  if(SendMessage(ModuleManeger.hStaticBoard,WM_USER+1,0,0)==0)
+		  if(SendMessage(ModuleManager.hStaticBoard,WM_USER+1,0,0)==0)
 		  {
 			wsprintf(szBuffer,TEXT("更新成功！"));
 			MB_ICON = MB_ICONINFORMATION;
@@ -204,12 +204,13 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		  quitFlag = true;
 		  //在关闭文件之前，先将数据数据重新写入文件
 		  //调用第一各模块管理器的 “底层”静态static board 的消息处理函数来实现数据写入
-		  SendMessage(ModuleManeger.hStaticBoard,WM_USER+1,0,0);
+		  SendMessage(ModuleManager.hStaticBoard,WM_USER+1,0,0);
 
           PostQuitMessage (0) ;
           return 0 ;
      }
      return DefWindowProc (hwnd, message, wParam, lParam) ;
+
 }
 
 
