@@ -10,9 +10,9 @@
 #include <time.h>
 #include "MyDefine.h"
 
-//使用全局变量 ModuleManeger (主模块管理器，在GlobleManager.h中定义，在Entry.cpp中初始化)
-//使用全局变量 ModuleManeger2 (第二个模块管理器，在GlobleManager.h中定义，在Entry.cpp中初始化)
-extern MODULEMANAGER ModuleManeger,ModuleManeger2;
+//使用全局变量 ModuleManager (主模块管理器，在GlobleManager.h中定义，在Entry.cpp中初始化)
+//使用全局变量 ModuleManager2 (第二个模块管理器，在GlobleManager.h中定义，在Entry.cpp中初始化)
+extern MODULEMANAGER ModuleManager,ModuleManager2;
 
 //使用全局变量szSubWindowClassName[] (子窗口类别名，在GlobleManager.h中定义，在Entry.cpp中初始化)
 extern TCHAR szSubWindowClassName[];	
@@ -84,19 +84,19 @@ LRESULT CALLBACK ModuleManagerProc (HWND hwnd, UINT message, WPARAM wParam, LPAR
 			cyClient = HIWORD(lParam);
 
 			//设置hStaticBoard的子窗口hButtonBoard和hContentBoard 的位置
-			MoveWindow(ModuleManeger.hButtonBoard,3,3,cxClient-2*3,cyChar+5,TRUE);
+			MoveWindow(ModuleManager.hButtonBoard,3,3,cxClient-2*3,cyChar+5,TRUE);
 
-			for(i=0 ; i<ModuleManeger.countOfModule ; i++)
-				MoveWindow(ModuleManeger.pToolModule[i].hContentBoard,3,3+cyChar+6,cxClient-2*3,cyClient-3-cyChar-6-3,TRUE);
+			for(i=0 ; i<ModuleManager.countOfModule ; i++)
+				MoveWindow(ModuleManager.pToolModule[i].hContentBoard,3,3+cyChar+6,cxClient-2*3,cyClient-3-cyChar-6-3,TRUE);
 			
 			//显示当前所选定的“内容窗口”
-			for(i=0; i<ModuleManeger.countOfModule ;i++){
+			for(i=0; i<ModuleManager.countOfModule ;i++){
 				
 				if(i==idOfCurrentAppModule){
-					ShowWindow(ModuleManeger.pToolModule[i].hContentBoard,SW_SHOW);
+					ShowWindow(ModuleManager.pToolModule[i].hContentBoard,SW_SHOW);
 				}
 				else 
-					ShowWindow(ModuleManeger.pToolModule[i].hContentBoard,SW_HIDE);
+					ShowWindow(ModuleManager.pToolModule[i].hContentBoard,SW_HIDE);
 			}
 
 		break;
@@ -191,12 +191,12 @@ LRESULT CALLBACK ModuleButtonWindowProc (HWND hwnd, UINT message, WPARAM wParam,
 		if(firstTimeFlag)
 		{
 			//将每个按钮的字体宽度信息保存在列表中
-			intList = (int*)malloc(sizeof(int)*ModuleManeger.countOfModule);
+			intList = (int*)malloc(sizeof(int)*ModuleManager.countOfModule);
 			CheckNullErrorAndQuit(intList,13,TEXT("Memory for [intList] alloc failed in ModuleButtonWindowProc()!"));
 
-			for(i=0 ; i< ModuleManeger.countOfModule ; i++)
+			for(i=0 ; i< ModuleManager.countOfModule ; i++)
 			{
-				intList[i] = GetWindowTextLength (ModuleManeger.pToolModule[i].hButton) ;
+				intList[i] = GetWindowTextLength (ModuleManager.pToolModule[i].hButton) ;
 			}
 	
 			//第一次调用时将高亮的区域指定为第一个按钮
@@ -208,9 +208,9 @@ LRESULT CALLBACK ModuleButtonWindowProc (HWND hwnd, UINT message, WPARAM wParam,
 
 		//根据xButtonBegin和字体宽度等设置按钮的 位置和大小
 		lengthToLeft =0;
-		for(i=0 ; i< ModuleManeger.countOfModule ; i++)
+		for(i=0 ; i< ModuleManager.countOfModule ; i++)
 		{
-			MoveWindow(ModuleManeger.pToolModule[i].hButton,
+			MoveWindow(ModuleManager.pToolModule[i].hButton,
 				xButtonBegin+lengthToLeft*cxChar*2+i*30,10, intList[i]*cxChar*2+30,cyWindow-10-2,TRUE);
 			lengthToLeft += intList[i];
 		}
@@ -261,7 +261,7 @@ LRESULT CALLBACK ModuleButtonWindowProc (HWND hwnd, UINT message, WPARAM wParam,
 
 			//计算点击按钮的位置，储存在newLeft 和 newRight中
 			lengthToLeft =0;
-			for(i=0 ; i< ModuleManeger.countOfModule ; i++)
+			for(i=0 ; i< ModuleManager.countOfModule ; i++)
 			{
 				if(i==idOfCurrentAppModule){
 					newLeft= xButtonBegin+lengthToLeft*cxChar*2+i*30;
@@ -611,8 +611,8 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 		else if(id == 1)
 		{
 			
-			//设置ModuleManeger2中底层hStaticBoard(第二个模块)的位置
-			MoveWindow(ModuleManeger2.hStaticBoard,5,5,cxWindow-10,cyWindow-10,TRUE);
+			//设置ModuleManager2中底层hStaticBoard(第二个模块)的位置
+			MoveWindow(ModuleManager2.hStaticBoard,5,5,cxWindow-10,cyWindow-10,TRUE);
 
 			//而hStaticBoard(第二个模块)的子窗口hButtonBoard 和hContentBoard的位置 在hStaticBoard 的消息处理函数(第二个模块)中设置
 

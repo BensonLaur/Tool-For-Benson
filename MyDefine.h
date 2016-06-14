@@ -71,6 +71,9 @@ WNDPROC ContentWindowProc;
 
 }ModuleProc,*PModuleProc;
 
+//储存各个模块内的控件的消息处理函数，
+
+
 /*********   在此定义各个模块使用的文件数据结构体  ********/
 //第一个模块
 //文件单元结构

@@ -36,7 +36,7 @@ TEXT("本地")
 ModuleProc moduleProc[COUNT_OF_MODULE_MANAGER];
 
 //主模块及其管理器句柄 和 第二个模块“收藏”及管理器句柄 
-MODULEMANAGER ModuleManeger,ModuleManeger2;	 
+MODULEMANAGER ModuleManager,ModuleManager2;	 
 HMODULEMANAGER hMM,hMM2;
 
 //用于调用保存消息时，区分是否即将保存后退出程序
