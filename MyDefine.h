@@ -12,6 +12,8 @@
 #define MAX_COUNT_OF_MODULE 20
 #define MAX_LEN_OF_MODULE_NAME 64
 #define MAX_COUNT_OF_MAP_HANDLE 1000 
+#define COUNT_OF_CONTROL_IN_SIGN_IN 7 //这里说的签到模块控件的数量是指可用于键盘快捷键切换
+									  //而得到焦点的空间的数量
 
 #define LBS_STANDARD_NO_SORT          (LBS_NOTIFY | WS_VSCROLL | WS_BORDER)
 
@@ -70,8 +72,6 @@ WNDPROC ButtonWindowProc;
 WNDPROC ContentWindowProc;
 
 }ModuleProc,*PModuleProc;
-
-//储存各个模块内的控件的消息处理函数，
 
 
 /*********   在此定义各个模块使用的文件数据结构体  ********/
@@ -192,5 +192,12 @@ LRESULT CALLBACK ModuleContentWindowProc2 (HWND hwnd, UINT message, WPARAM wPara
 //第一个模块中所有出现的Edit控件的新的消息处理函数
 LRESULT CALLBACK newEditProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
+//用于处理控件的快捷键盘操作的消息处理函数
+LRESULT CALLBACK ModuleButtonProc (HWND hwnd, UINT message,WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK NormalButtonProc (HWND hwnd, UINT message,WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK ListBoxProc (HWND hwnd, UINT message,WPARAM wParam, LPARAM lParam);
+
+//对话框资源 所用到的 对话框消息处理函数，此处理函数用于所有只确认的对话框
+BOOL  CALLBACK ConformDlgProc (HWND hDlg, UINT message,WPARAM wParam, LPARAM lParam) ;
 
 #endif

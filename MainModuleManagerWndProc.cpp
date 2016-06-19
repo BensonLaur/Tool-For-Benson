@@ -23,6 +23,11 @@ extern bool quitFlag;
 //用于标记签到的内容是否发生改变
 extern bool isSignInChange;
 
+extern int currentKeyFocusSignIn;
+extern int currentKeyFocusModule;
+extern HWND SignInControlHWND[COUNT_OF_CONTROL_IN_SIGN_IN];
+extern WNDPROC oldSignInControlWndProc[COUNT_OF_CONTROL_IN_SIGN_IN];
+
 //用于在 【第主模块管理器】 中指明当前 按钮选择了那个子模块
 static int idOfCurrentAppModule;
 
@@ -252,13 +257,18 @@ LRESULT CALLBACK ModuleButtonWindowProc (HWND hwnd, UINT message, WPARAM wParam,
 
 		if(idGot < MAX_COUNT_OF_MODULE) //为模块按钮的消息
 		{
+			currentKeyFocusModule = idGot;
+			//如果是第一个模块，设置签到模块 全局的键盘焦点 为0
+			if(idGot == 0)
+				currentKeyFocusSignIn =0;
+
 			for(i=0; i<pMM->countOfModule ;i++){
 				if(i==idOfCurrentAppModule)
 					ShowWindow(pMM->pToolModule[i].hContentBoard,SW_SHOW);
 				else 
 					ShowWindow(pMM->pToolModule[i].hContentBoard,SW_HIDE);
 			}
-
+printf("in Button Click :module [%d]\n",idGot);
 			//计算点击按钮的位置，储存在newLeft 和 newRight中
 			lengthToLeft =0;
 			for(i=0 ; i< ModuleManager.countOfModule ; i++)
@@ -268,7 +278,6 @@ LRESULT CALLBACK ModuleButtonWindowProc (HWND hwnd, UINT message, WPARAM wParam,
 					newRight= newLeft +  intList[i]*cxChar*2+30;
 					break;
 				}
-			
 				lengthToLeft += intList[i];
 			}
 		
@@ -404,6 +413,7 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 				 hSignInListBox = CreateWindow(TEXT("listbox"),NULL,WS_CHILD|WS_VISIBLE|LBS_STANDARD,
 									5,5,80,80,
 									hwnd, (HMENU)1,(HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
+
 				 hAddItemButton = CreateWindow(TEXT("button"),TEXT("添加签到项"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,
 									5,90,40,20,
 									hwnd, (HMENU)2, (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
@@ -440,6 +450,30 @@ LRESULT CALLBACK ModuleContentWindowProc (HWND hwnd, UINT message, WPARAM wParam
 				hAdvanceButton =CreateWindow(TEXT("button"),TEXT("高级设置"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,
 									0,0,0,0,
 									hwnd, (HMENU)11, (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),NULL);
+
+				
+				 //为了实现第一个模块全局快捷键切换，储存窗口句柄以及其消息处理函数
+				 SignInControlHWND[0] = hSignInListBox;
+				 oldSignInControlWndProc[0]=
+					 (WNDPROC)SetWindowLong (hSignInListBox,GWL_WNDPROC, (LONG)ListBoxProc) ;
+				 SignInControlHWND[1] = hAddItemButton;
+				 oldSignInControlWndProc[1]=
+					 (WNDPROC)SetWindowLong (hAddItemButton,GWL_WNDPROC, (LONG)NormalButtonProc) ;
+				 SignInControlHWND[2] = hDeleteItemButton;
+				 oldSignInControlWndProc[2]=
+					 (WNDPROC)SetWindowLong (hDeleteItemButton,GWL_WNDPROC, (LONG)NormalButtonProc) ;
+				 SignInControlHWND[3] = hSignInButton;
+				 oldSignInControlWndProc[3]=
+					 (WNDPROC)SetWindowLong (hSignInButton,GWL_WNDPROC, (LONG)NormalButtonProc) ;
+				 SignInControlHWND[4] = hBaseDataButton;
+				 oldSignInControlWndProc[4]=
+					 (WNDPROC)SetWindowLong (hBaseDataButton,GWL_WNDPROC, (LONG)NormalButtonProc) ;
+				 SignInControlHWND[5] = hHistogramButton;
+				 oldSignInControlWndProc[5]=
+					 (WNDPROC)SetWindowLong (hHistogramButton,GWL_WNDPROC, (LONG)NormalButtonProc) ;
+				 SignInControlHWND[6] = hAdvanceButton;
+				 oldSignInControlWndProc[6]=
+					 (WNDPROC)SetWindowLong (hAdvanceButton,GWL_WNDPROC, (LONG)NormalButtonProc) ;
 
 				//在SignInModuleSubWindow.cpp 中 初始化第一个模块的两个子窗口hDlgBaseData 和 hDlgHistogram
 				InitializeSubWindow(hwnd);

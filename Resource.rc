@@ -35,6 +35,11 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "保存当前更改（&S）",          IDM_SIGN_IN_SAVE
     END
+    POPUP "关于( &A )"
+    BEGIN
+        MENUITEM "快捷键... (&K)",              IDM_QUICK_KEY
+        MENUITEM "软件... (&S)",                IDM_SOFTWARE
+    END
 END
 
 
@@ -61,6 +66,61 @@ BEGIN
     "\0"
 END
 
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_QUICK_KEY DIALOG DISCARDABLE  0, 0, 346, 93
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "关于快捷键......"
+FONT 10, "System"
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,144,72,50,14
+    LTEXT           "    该程序第一个模块实现了快捷键方式访问。\n\n    使用要点如下：\n    1、当主窗口得到焦点后，会将焦点给当前显示模块的按钮，按 ""TAB"" 可在模块按钮间切换。\n    2、焦点在模块按钮上时，按""↓""可将焦点转移到模块内的控件，按 ""TAB"" 可在控件间切换。\n    3、当焦点在 ""非列表框控件""上时，按""↑""可转移焦点会模块按钮。\n    4、当前只实现了第一个签到模块的主要快捷切换功能。",
+                    IDC_STATIC,7,7,332,62
+END
+
+IDD_SOFTWARE DIALOG DISCARDABLE  0, 0, 187, 110
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "关于软件......"
+FONT 10, "System"
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,64,89,50,14
+    CTEXT           "Name: ToolForBenson\n\n(c) BensonLaur ,2016",IDC_STATIC,
+                    7,7,173,28
+    LTEXT           "Description:\n\n    该软件开发的初衷有二：\n    一是为了练习巩固   Charles Petzold  的《windows 程序设计》的知识。\n    二是顺便实现自己期望的功能。",
+                    IDC_STATIC,7,37,173,50
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_QUICK_KEY, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 339
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 86
+    END
+
+    IDD_SOFTWARE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 180
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 103
+    END
+END
 #endif    // APSTUDIO_INVOKED
 
 

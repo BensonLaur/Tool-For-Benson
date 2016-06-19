@@ -44,4 +44,16 @@ bool quitFlag =false;
 //用于标记签到的内容是否发生改变
 bool isSignInChange = false;
 
+//用于标记当前键盘的焦点在哪一个模块
+int currentKeyFocusModule =0;
+//用于标记当前键盘在第一个模块的哪一个焦点
+int currentKeyFocusSignIn =0;
+
+//储存各个模块内的控件的消息处理函数,用于自定义快捷键的切换
+WNDPROC oldModuleButtonWndProc[MAX_COUNT_OF_MODULE];
+WNDPROC oldSignInControlWndProc[COUNT_OF_CONTROL_IN_SIGN_IN];
+WNDPROC oldFavoriteButtonWndProc[3];
+//储存第一个模块的空间的窗口句柄
+HWND SignInControlHWND[COUNT_OF_CONTROL_IN_SIGN_IN];
+
 #endif
