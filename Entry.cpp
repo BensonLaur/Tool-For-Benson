@@ -92,6 +92,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	 int cxClient,cyClient,i,MB_ICON;
 	 HMENU hSignInMenu;
+	 static HINSTANCE hInstance;
 	 
      switch (message)
      {
@@ -133,6 +134,9 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			/**注意:第二个模块管理器的布局 交由【主模块管理器】静态ContentBoard 的消息处理函数 来绘制  */
 			/**    而第二个模块管理器里的各个模块的布局 则由【第二个模块管理器】ModuleContentWindowProc2负责*/
+
+			//取得当前主窗口的执行实例
+			hInstance = ((LPCREATESTRUCT) lParam)->hInstance ;
 
           return 0 ;
 
@@ -193,10 +197,25 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		  isSignInChange = false;
 
 			break;
+		 case IDM_SOFTWARE:
+			DialogBox (hInstance, MAKEINTRESOURCE(IDD_SOFTWARE), hwnd, ConformDlgProc) ;
+
+			 break;
+		 case IDM_QUICK_KEY:
+			DialogBox (hInstance, MAKEINTRESOURCE(IDD_QUICK_KEY), hwnd, ConformDlgProc) ;
+
+			 break;
 		 }
 
 
 		 return 0;
+
+	 case WM_SETFOCUS:
+		  //每次主窗口获得焦点，把焦点转移给第一个模块
+			SetFocus(ModuleManager.pToolModule[currentKeyFocusModule].hButton);
+
+			 return 0;
+	 
      case WM_DESTROY:
 		  //释放句柄的内存
 		  FreeMapList();

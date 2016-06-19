@@ -7,6 +7,7 @@
 
 #include <windows.h>
 #include "MyDefine.h"
+#include "KeyBoardControl.h"
 #include <stdio.h>
 
 /*********  函数定义  *********/
@@ -133,6 +134,10 @@ void AddNewModule(HMODULEMANAGER hMM,ModuleProc &moduleProc, TCHAR *pstrName)
 													5+80*pMM->countOfModule,5,80,40,pMM->hButtonBoard,(HMENU)pMM->countOfModule,
 																						//ID 设置为模块在数组pToolModule[]的位置下标
 													hInstance2,NULL);
+	//将模块按钮的消息处理函数 设置为 自定义的消息处理函数
+	oldModuleButtonWndProc[pMM->countOfModule] = 
+		(WNDPROC) SetWindowLong(pMM->pToolModule[pMM->countOfModule].hButton,GWL_WNDPROC,(LONG)ModuleButtonProc);
+
 	pMM->pToolModule[pMM->countOfModule].hContentBoard = CreateWindow(TEXT("static"),NULL,WS_CHILD|SS_WHITERECT|WS_VISIBLE|WS_BORDER,
 										0,0,0,0,
 										pMM->hStaticBoard,(HMENU)(HMENU)pMM->countOfModule,
@@ -284,4 +289,5 @@ int DaysBetween(SignIn &former,SignIn &latter)
 
 	return DaysFromBase2-DaysFromBase1;
 }
+
 
