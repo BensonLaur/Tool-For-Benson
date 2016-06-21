@@ -91,9 +91,10 @@ FONT 10, "System"
 BEGIN
     DEFPUSHBUTTON   "确定",IDOK,64,89,50,14
     CTEXT           "Name: ToolForBenson\n\n(c) BensonLaur ,2016",IDC_STATIC,
-                    7,7,173,28
+                    54,7,77,28
     LTEXT           "Description:\n\n    该软件开发的初衷有二：\n    一是为了练习巩固   Charles Petzold  的《windows 程序设计》的知识。\n    二是顺便实现自己期望的功能。",
                     IDC_STATIC,7,37,173,50
+    ICON            "Tool_For_Benson",IDC_STATIC,26,13,20,20
 END
 
 
@@ -123,6 +124,15 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+Tool_For_Benson         ICON    DISCARDABLE     "app_icon.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
