@@ -90,6 +90,10 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\DlgResourceWndProc.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\Entry.cpp
 
 !IF  "$(CFG)" == "ToolForBenson - Win32 Release"
@@ -140,6 +144,10 @@ SOURCE=.\GlobleManager.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\KeyboardControl.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\MyDefine.h
 # End Source File
 # Begin Source File
@@ -150,6 +158,11 @@ SOURCE=.\resource.h
 # Begin Group "Resource Files"
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# Begin Source File
+
+SOURCE=.\app_icon.ico
+# End Source File
+
 # End Group
 # End Target
 # End Project

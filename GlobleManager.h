@@ -14,7 +14,7 @@
 #define COUNT_OF_SUB_MODULE sizeof(CollectionModuleName)/sizeof(CollectionModuleName[0])
 
 /***** 程序名 和 子窗口类别名（都用于在Entry.cpp 中窗口类型wndclass的创建）*******/
-TCHAR szAppName[] = TEXT ("Tool For Benson") ;
+TCHAR szAppName[] = TEXT ("Tool_For_Benson") ;
 TCHAR szSubWindowClassName[] = TEXT("subWindow");
 
 /*********   模块的名称，需要时可以直接在下面添加名称从而 直接添加模块  ********/
